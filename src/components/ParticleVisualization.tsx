@@ -15,7 +15,7 @@ export const ParticleVisualization: React.FC<ParticleVisualizationProps> = ({
   branch,
   cellSize,
 }) => {
-  const ELECTRON_RADIUS = cellSize / 4;
+  const ELECTRON_RADIUS = cellSize / 3.5;
 
   // Calculate display values
   const p = branchProbability(branch);
@@ -41,13 +41,20 @@ export const ParticleVisualization: React.FC<ParticleVisualizationProps> = ({
         />
       )}
 
-      {/* Base circle with probability pie slice */}
+      {/* Base circle with subtle gradient */}
+      <defs>
+        <radialGradient id="particle-gradient">
+          <stop offset="0%" style={{ stopColor: '#ffffff', stopOpacity: 1 }} />
+          <stop offset="70%" style={{ stopColor: '#f9fafb', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#e5e7eb', stopOpacity: 1 }} />
+        </radialGradient>
+      </defs>
       <circle
         cx={0}
         cy={0}
         r={ELECTRON_RADIUS}
-        fill="white"
-        stroke="black"
+        fill="url(#particle-gradient)"
+        stroke="#374151"
         strokeWidth={2}
       />
 
@@ -57,15 +64,29 @@ export const ParticleVisualization: React.FC<ParticleVisualizationProps> = ({
           radius={ELECTRON_RADIUS}
           startAngle={0}
           endAngle={pAngle}
-          color="#ccc"
+          color="#6366f1"
         />
       )}
 
-      {/* Phase arrow (blue line from center) */}
+      {/* Phase arrow (cyan line from center) */}
       <PhaseArrow angle={phaseAngle} radius={ELECTRON_RADIUS} />
 
-      {/* Spin direction (red line from center) */}
+      {/* Spin direction (magenta line from center) */}
       <SpinLine angle={spinAngle} radius={ELECTRON_RADIUS} />
+      
+      {/* Probability label */}
+      {p > 0 && p < 1 && (
+        <text
+          x={0}
+          y={ELECTRON_RADIUS + 12}
+          textAnchor="middle"
+          fontSize={Math.max(8, cellSize * 0.08)}
+          fill="#374151"
+          fontWeight="500"
+        >
+          {(p * 100).toFixed(0)}%
+        </text>
+      )}
     </g>
   );
 };
@@ -97,8 +118,11 @@ const VelocityArrow: React.FC<{
   // SVG coords: +x right, +y down
   // So negate vy when computing angle
   const angle = Math.atan2(-vy, vx);
-  const arrowLineLength = 1.5 * radius;
-  const arrowheadSize = cellSize / 10;
+  
+  // Arrow extends just beyond the circle but stays within cell
+  const arrowheadSize = Math.min(cellSize * 0.12, 12);
+  const arrowLineLength = radius * 1.15; // Just barely extends past circle
+  const arrowTipLength = arrowLineLength + arrowheadSize;
 
   return (
     <g transform={`rotate(${(angle * 180) / Math.PI})`}>
@@ -107,14 +131,15 @@ const VelocityArrow: React.FC<{
         y1={0}
         x2={arrowLineLength}
         y2={0}
-        stroke="black"
-        strokeWidth={2}
+        stroke="#10b981"
+        strokeWidth={3}
+        strokeLinecap="round"
       />
       <polygon
         points={`${arrowLineLength},${-arrowheadSize / 2} ${
-          arrowLineLength + arrowheadSize
+          arrowTipLength
         },0 ${arrowLineLength},${arrowheadSize / 2}`}
-        fill="black"
+        fill="#10b981"
       />
     </g>
   );
@@ -145,33 +170,42 @@ const PieSlice: React.FC<{
   return <path d={pathData} fill={color} />;
 };
 
-// Phase arrow component (blue line)
+// Phase arrow component (cyan line)
 const PhaseArrow: React.FC<{ angle: number; radius: number }> = ({
   angle,
   radius,
 }) => {
   // Phase angle is already in standard complex number convention (0 = right)
   // which matches SVG convention, so no conversion needed
+  const length = radius * 0.85;
+  
   return (
-    <g transform={`rotate(${(angle * 180) / Math.PI})`}>
-      <line
-        x1={0}
-        y1={0}
-        x2={radius}
-        y2={0}
-        stroke="blue"
-        strokeWidth={2}
-      />
+    <g>
+      {/* Center dot */}
+      <circle cx={0} cy={0} r={3} fill="#06b6d4" />
+      
+      {/* Line from center */}
+      <g transform={`rotate(${(angle * 180) / Math.PI})`}>
+        <line
+          x1={0}
+          y1={0}
+          x2={length}
+          y2={0}
+          stroke="#06b6d4"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
+      </g>
     </g>
   );
 };
 
-// Spin line component (red line)
+// Spin line component (magenta line)
 const SpinLine: React.FC<{ angle: number; radius: number }> = ({
   angle,
   radius,
 }) => {
-  const length = radius / 2;
+  const length = radius * 0.6;
 
   // Convert from Bloch sphere angle (0 = up) to SVG angle (0 = right)
   // In SVG: 0° = right, 90° = down (y-axis points down!)
@@ -181,15 +215,22 @@ const SpinLine: React.FC<{ angle: number; radius: number }> = ({
   const svgAngle = angle - Math.PI / 2;
 
   return (
-    <g transform={`rotate(${(svgAngle * 180) / Math.PI})`}>
-      <line
-        x1={0}
-        y1={0}
-        x2={length}
-        y2={0}
-        stroke="red"
-        strokeWidth={2}
-      />
+    <g>
+      {/* Center dot */}
+      <circle cx={0} cy={0} r={3} fill="#ec4899" />
+      
+      {/* Line from center */}
+      <g transform={`rotate(${(svgAngle * 180) / Math.PI})`}>
+        <line
+          x1={0}
+          y1={0}
+          x2={length}
+          y2={0}
+          stroke="#ec4899"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
+      </g>
     </g>
   );
 };

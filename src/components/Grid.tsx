@@ -66,9 +66,35 @@ export const Grid: React.FC<GridProps> = ({
         height={height * CELL_SIZE}
         style={{ display: 'block' }}
       >
-        {/* Render grid cells */}
+        {/* Layer 1: Grid backgrounds and borders */}
         {Array.from({ length: height }, (_, row) => {
-          const y = maxy - row; // Flip y-axis (SVG has y increasing downward)
+          const y = maxy - row;
+          return Array.from({ length: width }, (_, col) => {
+            const x = minx + col;
+            const position = vec(x, y);
+            const isSource = vecEqual(position, experiment.source.position);
+
+            return (
+              <rect
+                key={`bg-${x},${y}`}
+                x={col * CELL_SIZE}
+                y={row * CELL_SIZE}
+                width={CELL_SIZE}
+                height={CELL_SIZE}
+                fill={isSource ? '#e3f2fd' : 'white'}
+                stroke="#d1d5db"
+                strokeWidth={0.5}
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => handleCellClick(x, y, e)}
+                onContextMenu={(e) => handleCellClick(x, y, e)}
+              />
+            );
+          });
+        })}
+
+        {/* Layer 2: Components (on top of grid) */}
+        {Array.from({ length: height }, (_, row) => {
+          const y = maxy - row;
           return Array.from({ length: width }, (_, col) => {
             const x = minx + col;
             const position = vec(x, y);
@@ -76,27 +102,8 @@ export const Grid: React.FC<GridProps> = ({
             const component = experiment.components.get(posKey);
             const isSource = vecEqual(position, experiment.source.position);
 
-            // Find branches at this position
-            const branchesHere = particle.filter((b) =>
-              vecEqual(b.position, position)
-            );
-
             return (
-              <g key={`${x},${y}`}>
-                {/* Cell background */}
-                <rect
-                  x={col * CELL_SIZE}
-                  y={row * CELL_SIZE}
-                  width={CELL_SIZE}
-                  height={CELL_SIZE}
-                  fill={isSource ? '#e3f2fd' : 'white'}
-                  stroke="#ccc"
-                  strokeWidth={1}
-                  style={{ cursor: 'pointer' }}
-                  onClick={(e) => handleCellClick(x, y, e)}
-                  onContextMenu={(e) => handleCellClick(x, y, e)}
-                />
-
+              <g key={`cmp-${x},${y}`}>
                 {/* Source indicator */}
                 {isSource && (
                   <text
@@ -117,8 +124,25 @@ export const Grid: React.FC<GridProps> = ({
                     <ComponentRenderer component={component} cellSize={CELL_SIZE} />
                   </g>
                 )}
+              </g>
+            );
+          });
+        })}
 
-                {/* Particle visualization */}
+        {/* Layer 3: Particles (on top of everything) */}
+        {Array.from({ length: height }, (_, row) => {
+          const y = maxy - row;
+          return Array.from({ length: width }, (_, col) => {
+            const x = minx + col;
+            const position = vec(x, y);
+
+            // Find branches at this position
+            const branchesHere = particle.filter((b) =>
+              vecEqual(b.position, position)
+            );
+
+            return (
+              <g key={`particle-${x},${y}`}>
                 {branchesHere.map((branch, idx) => (
                   <g
                     key={idx}

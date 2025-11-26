@@ -218,68 +218,38 @@ function App() {
 
   return (
     <div className="app">
-      <header className="header">
-        <h1>Quantum Simulator</h1>
-        <p>Interactive quantum physics experiment editor and visualizer</p>
-      </header>
+      {/* Main grid - full screen */}
+      <div className="grid-container-wrapper">
+        <Grid
+          system={system}
+          selectedComponent={selectedComponent}
+          onAddComponent={handleAddComponent}
+          onRemoveComponent={handleRemoveComponent}
+        />
+      </div>
 
-      <div className="main-content">
-        {/* Left sidebar: Component palette and examples */}
-        <aside className="sidebar left">
-          <ComponentPalette
-            selectedComponent={selectedComponent}
-            onSelectComponent={setSelectedComponent}
-          />
+      {/* Floating component palette on the left */}
+      <div className="floating-panel component-palette-floating">
+        <ComponentPalette
+          selectedComponent={selectedComponent}
+          onSelectComponent={setSelectedComponent}
+        />
+      </div>
 
-          <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#1a1a1a', borderRadius: '8px', border: '1px solid #404040' }}>
-            <h3 style={{ marginTop: 0, color: '#e5e5e5' }}>Examples</h3>
-            {(Object.keys(EXAMPLES) as Array<keyof typeof EXAMPLES>).map((key) => (
-              <button
-                key={key}
-                onClick={() => loadExample(key)}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '10px',
-                  marginBottom: '8px',
-                  backgroundColor: currentExample === key ? '#3b82f6' : '#404040',
-                  color: currentExample === key ? 'white' : '#e5e5e5',
-                  border: '2px solid ' + (currentExample === key ? '#2563eb' : '#525252'),
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: currentExample === key ? 'bold' : 'normal',
-                }}
-              >
-                {EXAMPLES[key].name}
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        {/* Center: Grid */}
-        <main className="grid-area">
-          <Grid
-            system={system}
-            selectedComponent={selectedComponent}
-            onAddComponent={handleAddComponent}
-            onRemoveComponent={handleRemoveComponent}
-          />
-        </main>
-
-        {/* Right sidebar: Controls */}
-        <aside className="sidebar right">
-          <SimulationControls
-            isRunning={isRunning}
-            speed={speed}
-            stepCount={stepCount}
-            detectionResult={detectionResult}
-            onStep={step}
-            onReset={reset}
-            onTogglePlay={togglePlay}
-            onSpeedChange={setSpeed}
-          />
-        </aside>
+      {/* Floating controls on the top right */}
+      <div className="floating-panel controls-floating">
+        <SimulationControls
+          isRunning={isRunning}
+          speed={speed}
+          stepCount={stepCount}
+          detectionResult={detectionResult}
+          onStep={step}
+          onReset={reset}
+          onTogglePlay={togglePlay}
+          onSpeedChange={setSpeed}
+          onLoadExample={loadExample}
+          currentExample={currentExample}
+        />
       </div>
     </div>
   );

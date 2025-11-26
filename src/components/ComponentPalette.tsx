@@ -5,6 +5,7 @@ import Complex from 'complex.js';
 import { vec } from '../core/vec';
 import type { Component } from '../core/types';
 import { sg, detector, splitter, joiner, mirror, glass } from '../core/types';
+import { ComponentRenderer } from './ComponentRenderer';
 
 interface ComponentPaletteProps {
   selectedComponent: Component | null;
@@ -74,83 +75,70 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
     return JSON.stringify(option.component) === JSON.stringify(selectedComponent);
   };
 
+  const CELL_SIZE = 48;
+
   return (
-    <div
-      style={{
-        padding: '20px',
-        backgroundColor: '#1a1a1a',
-        borderRadius: '8px',
-        maxWidth: '300px',
-        border: '1px solid #404040',
-      }}
-    >
-      <h3 style={{ marginTop: 0, color: '#e5e5e5' }}>Component Palette</h3>
-      <p style={{ fontSize: '14px', color: '#a3a3a3', marginBottom: '15px' }}>
-        Click to select a component, then click on the grid to place it. Right-click
-        to remove.
-      </p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {COMPONENT_OPTIONS.map((option, idx) => (
-          <button
-            key={idx}
-            onClick={() => {
-              if (isSelected(option)) {
-                onSelectComponent(null);
-              } else {
-                onSelectComponent(option.component);
-              }
-            }}
-            style={{
-              padding: '12px',
-              backgroundColor: isSelected(option) ? '#3b82f6' : '#404040',
-              color: isSelected(option) ? 'white' : '#e5e5e5',
-              border: '2px solid ' + (isSelected(option) ? '#2563eb' : '#525252'),
-              borderRadius: '4px',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontSize: '14px',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isSelected(option)) {
-                e.currentTarget.style.backgroundColor = '#525252';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isSelected(option)) {
-                e.currentTarget.style.backgroundColor = '#404040';
-              }
-            }}
+    <>
+      {COMPONENT_OPTIONS.map((option, idx) => (
+        <button
+          key={idx}
+          onClick={() => {
+            if (isSelected(option)) {
+              onSelectComponent(null);
+            } else {
+              onSelectComponent(option.component);
+            }
+          }}
+          title={`${option.name}: ${option.description}`}
+          style={{
+            width: `${CELL_SIZE}px`,
+            height: `${CELL_SIZE}px`,
+            padding: '0',
+            backgroundColor: '#1a1a1a',
+            border: isSelected(option) ? '2px solid #3b82f6' : '1px solid #404040',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          <svg
+            width={CELL_SIZE}
+            height={CELL_SIZE}
+            style={{ display: 'block' }}
           >
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-              {option.name}
-            </div>
-            <div style={{ fontSize: '12px', opacity: 0.8 }}>
-              {option.description}
-            </div>
-          </button>
-        ))}
-
-        {selectedComponent && (
-          <button
-            onClick={() => onSelectComponent(null)}
-            style={{
-              padding: '12px',
-              backgroundColor: '#ff5252',
-              color: 'white',
-              border: '2px solid #f44336',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              marginTop: '8px',
-            }}
-          >
-            Clear Selection
-          </button>
-        )}
-      </div>
-    </div>
+            <ComponentRenderer component={option.component} cellSize={CELL_SIZE} />
+          </svg>
+        </button>
+      ))}
+      
+      {/* Eraser */}
+      <button
+        onClick={() => onSelectComponent(null)}
+        title="Eraser (or right-click to remove)"
+        style={{
+          width: `${CELL_SIZE}px`,
+          height: `${CELL_SIZE}px`,
+          padding: '0',
+          backgroundColor: '#1a1a1a',
+          color: '#e5e5e5',
+          border: selectedComponent === null ? '2px solid #3b82f6' : '1px solid #404040',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.15s',
+        }}
+      >
+        🗑️
+      </button>
+    </>
   );
 };
 

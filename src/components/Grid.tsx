@@ -48,6 +48,9 @@ export const Grid: React.FC<GridProps> = ({
     } else if (selectedComponent) {
       // Left click with selected component: add/replace component
       onAddComponent(position, selectedComponent);
+    } else {
+      // Left click with eraser (no component selected): remove component
+      onRemoveComponent(position);
     }
   };
 
@@ -113,7 +116,7 @@ export const Grid: React.FC<GridProps> = ({
                     fontSize="12"
                     fill="#d4d4d4"
                     fontWeight="bold"
-                    pointerEvents="none"
+                    style={{ pointerEvents: 'none' }}
                   >
                     SOURCE
                   </text>
@@ -121,7 +124,10 @@ export const Grid: React.FC<GridProps> = ({
 
                 {/* Component rendering */}
                 {component && (
-                  <g transform={`translate(${col * CELL_SIZE}, ${row * CELL_SIZE})`}>
+                  <g 
+                    transform={`translate(${col * CELL_SIZE}, ${row * CELL_SIZE})`}
+                    style={{ pointerEvents: 'none' }}
+                  >
                     <ComponentRenderer component={component} cellSize={CELL_SIZE} />
                   </g>
                 )}

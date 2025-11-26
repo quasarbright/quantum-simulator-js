@@ -15,6 +15,9 @@ interface GridProps {
   onZoomOut: () => void;
   onZoomToFit: () => void;
   isPanMode: boolean;
+  onHoverCell: (cell: { x: number; y: number } | null) => void;
+  onZoomChange: (zoom: number) => void;
+  onSelectComponent: (position: Vec) => void;
 }
 
 // Transform between simulation coordinates and pixel coordinates
@@ -69,6 +72,9 @@ export const Grid: React.FC<GridProps> = ({
   onZoomOut,
   onZoomToFit,
   isPanMode,
+  onHoverCell,
+  onZoomChange,
+  onSelectComponent,
 }) => {
   const { experiment, particle } = system;
   
@@ -211,6 +217,9 @@ export const Grid: React.FC<GridProps> = ({
       setTransform((prev) => {
         const newScale = Math.max(CELL_SIZE * 0.1, Math.min(CELL_SIZE * 5, prev.scale * zoomFactor));
         
+        // Notify parent of zoom change
+        onZoomChange(newScale / CELL_SIZE);
+        
         // Keep the point under the mouse cursor stationary
         // Point in simulation space: (mouseX - offsetX) / scale
         // After zoom, it should still be at mouseX, mouseY in pixel space
@@ -262,9 +271,11 @@ export const Grid: React.FC<GridProps> = ({
       const simCoords = pixelToSim(e.clientX, e.clientY, transform);
       const gridX = Math.floor(simCoords.x);
       const gridY = Math.floor(simCoords.y);
-      setHoveredCell({ x: gridX, y: gridY });
+      const cell = { x: gridX, y: gridY };
+      setHoveredCell(cell);
+      onHoverCell(cell);
     }
-  }, [isPanning, lastMousePos, isSpacePressed, isPanMode, transform]);
+  }, [isPanning, lastMousePos, isSpacePressed, isPanMode, transform, onHoverCell]);
   
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
@@ -273,7 +284,8 @@ export const Grid: React.FC<GridProps> = ({
   const handleMouseLeave = useCallback(() => {
     setIsPanning(false);
     setHoveredCell(null); // Clear hover when mouse leaves
-  }, []);
+    onHoverCell(null);
+  }, [onHoverCell]);
   
   // Handle space key for panning mode
   useEffect(() => {
@@ -326,6 +338,15 @@ export const Grid: React.FC<GridProps> = ({
     const gridX = Math.floor(simCoords.x);
     const gridY = Math.floor(simCoords.y);
     const position = vec(gridX, gridY);
+    const posKey = vecToKey(position);
+
+    // Check if clicking on existing component with Ctrl/Cmd key for properties editing
+    if (e.ctrlKey || e.metaKey) {
+      if (experiment.components.has(posKey)) {
+        onSelectComponent(position);
+        return;
+      }
+    }
 
     if (selectedComponent) {
       // Left click with selected component: add/replace component

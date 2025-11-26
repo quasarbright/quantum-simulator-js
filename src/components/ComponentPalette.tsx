@@ -6,6 +6,7 @@ import { vec } from '../core/vec';
 import type { Component } from '../core/types';
 import { sg, detector, splitter, joiner, mirror, glass } from '../core/types';
 import { ComponentRenderer } from './ComponentRenderer';
+import { COMPONENT_DESCRIPTIONS } from '../data/componentDescriptions';
 
 interface ComponentPaletteProps {
   selectedComponent: Component | null;
@@ -23,47 +24,47 @@ interface ComponentOption {
 const COMPONENT_OPTIONS: ComponentOption[] = [
   {
     name: 'SG (V)',
-    description: 'Vertical Stern-Gerlach (measures vertical spin)',
+    description: `${COMPONENT_DESCRIPTIONS['sg-vertical'].name} (${COMPONENT_DESCRIPTIONS['sg-vertical'].shortcut})\n${COMPONENT_DESCRIPTIONS['sg-vertical'].description}\n${COMPONENT_DESCRIPTIONS['sg-vertical'].details}`,
     component: sg(false),
   },
   {
     name: 'SG (H)',
-    description: 'Horizontal Stern-Gerlach (measures horizontal spin)',
+    description: `${COMPONENT_DESCRIPTIONS['sg-horizontal'].name} (${COMPONENT_DESCRIPTIONS['sg-horizontal'].shortcut})\n${COMPONENT_DESCRIPTIONS['sg-horizontal'].description}\n${COMPONENT_DESCRIPTIONS['sg-horizontal'].details}`,
     component: sg(true),
   },
   {
     name: 'Detector',
-    description: 'Particle detector (collapses wave function)',
+    description: `${COMPONENT_DESCRIPTIONS.detector.name} (${COMPONENT_DESCRIPTIONS.detector.shortcut})\n${COMPONENT_DESCRIPTIONS.detector.description}\n${COMPONENT_DESCRIPTIONS.detector.details}`,
     component: detector('D'),
   },
   {
     name: 'Splitter /',
-    description: 'Beam splitter (diagonal /)',
+    description: `${COMPONENT_DESCRIPTIONS['splitter-forward'].name} (${COMPONENT_DESCRIPTIONS['splitter-forward'].shortcut})\n${COMPONENT_DESCRIPTIONS['splitter-forward'].description}\n${COMPONENT_DESCRIPTIONS['splitter-forward'].details}`,
     component: splitter(vec(1, 1)),
   },
   {
     name: 'Splitter \\',
-    description: 'Beam splitter (diagonal \\)',
+    description: `${COMPONENT_DESCRIPTIONS['splitter-backward'].name} (${COMPONENT_DESCRIPTIONS['splitter-backward'].shortcut})\n${COMPONENT_DESCRIPTIONS['splitter-backward'].description}\n${COMPONENT_DESCRIPTIONS['splitter-backward'].details}`,
     component: splitter(vec(1, -1)),
   },
   {
     name: 'Joiner',
-    description: 'Beam joiner (combines paths)',
+    description: `${COMPONENT_DESCRIPTIONS.joiner.name} (${COMPONENT_DESCRIPTIONS.joiner.shortcut})\n${COMPONENT_DESCRIPTIONS.joiner.description}\n${COMPONENT_DESCRIPTIONS.joiner.details}`,
     component: joiner(),
   },
   {
     name: 'Mirror /',
-    description: 'Mirror (diagonal /)',
+    description: `${COMPONENT_DESCRIPTIONS['mirror-forward'].name} (${COMPONENT_DESCRIPTIONS['mirror-forward'].shortcut})\n${COMPONENT_DESCRIPTIONS['mirror-forward'].description}\n${COMPONENT_DESCRIPTIONS['mirror-forward'].details}`,
     component: mirror(vec(1, 1)),
   },
   {
     name: 'Mirror \\',
-    description: 'Mirror (diagonal \\)',
+    description: `${COMPONENT_DESCRIPTIONS['mirror-backward'].name} (${COMPONENT_DESCRIPTIONS['mirror-backward'].shortcut})\n${COMPONENT_DESCRIPTIONS['mirror-backward'].description}\n${COMPONENT_DESCRIPTIONS['mirror-backward'].details}`,
     component: mirror(vec(1, -1)),
   },
   {
     name: 'Glass',
-    description: 'Phase shifter (i = +90°)',
+    description: `${COMPONENT_DESCRIPTIONS.glass.name} (${COMPONENT_DESCRIPTIONS.glass.shortcut})\n${COMPONENT_DESCRIPTIONS.glass.description}\n${COMPONENT_DESCRIPTIONS.glass.details}`,
     component: glass(new Complex(0, 1)),
   },
 ];
@@ -86,7 +87,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
       {/* Hand tool (pan mode) */}
       <button
         onClick={onTogglePanMode}
-        title="Hand Tool (Space): Pan the canvas"
+        title={`${COMPONENT_DESCRIPTIONS.hand.name} (${COMPONENT_DESCRIPTIONS.hand.shortcut})\n${COMPONENT_DESCRIPTIONS.hand.description}\n${COMPONENT_DESCRIPTIONS.hand.details}`}
         style={{
           width: `${CELL_SIZE}px`,
           height: `${CELL_SIZE}px`,

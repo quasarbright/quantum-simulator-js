@@ -15,6 +15,7 @@ import {
 import { Grid } from './components/Grid';
 import { ComponentPalette } from './components/ComponentPalette';
 import { SimulationControls } from './components/SimulationControls';
+import { CameraControls } from './components/CameraControls';
 import './App.css';
 
 // Pre-loaded example experiments
@@ -87,6 +88,7 @@ function App() {
 
   // UI state
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
+  const [isPanMode, setIsPanMode] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [stepCount, setStepCount] = useState(0);
@@ -184,7 +186,16 @@ function App() {
     setDetectionResult(null);
     setIsRunning(false);
     setSelectedComponent(null);
+    setIsPanMode(false);
   }, []);
+
+  // Toggle pan mode
+  const togglePanMode = useCallback(() => {
+    setIsPanMode((prev) => !prev);
+    if (!isPanMode) {
+      setSelectedComponent(null); // Deselect any component when entering pan mode
+    }
+  }, [isPanMode]);
 
   // Animation loop for auto-play
   useEffect(() => {
@@ -216,6 +227,24 @@ function App() {
     };
   }, [isRunning, speed, step]);
 
+  const handleZoomIn = useCallback(() => {
+    if ((window as any).__gridZoomIn) {
+      (window as any).__gridZoomIn();
+    }
+  }, []);
+  
+  const handleZoomOut = useCallback(() => {
+    if ((window as any).__gridZoomOut) {
+      (window as any).__gridZoomOut();
+    }
+  }, []);
+  
+  const handleZoomToFit = useCallback(() => {
+    if ((window as any).__gridZoomToFit) {
+      (window as any).__gridZoomToFit();
+    }
+  }, []);
+
   return (
     <div className="app">
       {/* Main grid - full screen */}
@@ -225,6 +254,10 @@ function App() {
           selectedComponent={selectedComponent}
           onAddComponent={handleAddComponent}
           onRemoveComponent={handleRemoveComponent}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomToFit={handleZoomToFit}
+          isPanMode={isPanMode}
         />
       </div>
 
@@ -233,6 +266,8 @@ function App() {
         <ComponentPalette
           selectedComponent={selectedComponent}
           onSelectComponent={setSelectedComponent}
+          isPanMode={isPanMode}
+          onTogglePanMode={togglePanMode}
         />
       </div>
 
@@ -249,6 +284,15 @@ function App() {
           onSpeedChange={setSpeed}
           onLoadExample={loadExample}
           currentExample={currentExample}
+        />
+      </div>
+      
+      {/* Camera controls on the bottom left */}
+      <div className="floating-panel camera-controls-floating">
+        <CameraControls
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomToFit={handleZoomToFit}
         />
       </div>
     </div>

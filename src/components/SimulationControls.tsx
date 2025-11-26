@@ -52,9 +52,15 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             borderRadius: '6px',
             fontSize: '12px',
             fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          ⏭
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            <line x1="19" y1="3" x2="19" y2="21" stroke="currentColor" strokeWidth="2"></line>
+          </svg>
         </button>
 
         <button
@@ -68,9 +74,21 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             borderRadius: '6px',
             fontSize: '12px',
             fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {isRunning ? '⏸' : '▶'}
+          {isRunning ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          )}
         </button>
 
         <button
@@ -83,9 +101,17 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             borderRadius: '6px',
             fontSize: '12px',
             fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          🔄
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M3 21v-5h5"></path>
+          </svg>
         </button>
         
         <button
@@ -98,9 +124,15 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             borderRadius: '6px',
             fontSize: '12px',
             fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          📚
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
         </button>
       </div>
 
@@ -116,8 +148,11 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       >
         <div><strong>Steps:</strong> {stepCount}</div>
         {detectionResult && (
-          <div style={{ color: '#4caf50', marginTop: '4px' }}>
-            ✓ {detectionResult.name}
+          <div style={{ color: '#4caf50', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            {detectionResult.name}
           </div>
         )}
       </div>

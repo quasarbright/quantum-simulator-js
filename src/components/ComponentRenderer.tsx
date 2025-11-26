@@ -2,6 +2,20 @@
 
 import React from 'react';
 import type { Component } from '../core/types';
+import {
+  SG_BACKGROUND,
+  SG_BORDER,
+  SG_INDICATOR,
+  DETECTOR_BACKGROUND,
+  DETECTOR_BORDER,
+  DETECTOR_ICON,
+  DETECTOR_TEXT,
+  GLASS_BACKGROUND,
+  GLASS_BORDER,
+  GLASS_TEXT,
+  MOVEMENT_GLOW,
+  GREEN_SOLID,
+} from '../styles/colors';
 
 interface ComponentRendererProps {
   component: Component;
@@ -42,14 +56,14 @@ const SGRenderer: React.FC<{ horizontal: boolean; cellSize: number }> = ({
   
   return (
     <g>
-      {/* Light red background */}
+      {/* Dark red background */}
       <rect
         x={inset}
         y={inset}
         width={cellSize - 2 * inset}
         height={cellSize - 2 * inset}
-        fill="#fee2e2"
-        stroke="#dc2626"
+        fill={SG_BACKGROUND}
+        stroke={SG_BORDER}
         strokeWidth={2}
         rx={4}
       />
@@ -59,13 +73,13 @@ const SGRenderer: React.FC<{ horizontal: boolean; cellSize: number }> = ({
         <>
           {/* Left indicator (SPIN_LEFT) */}
           <g transform={`translate(${center}, ${center})`}>
-            <circle cx={0} cy={0} r={dotRadius} fill="#dc2626" />
+            <circle cx={0} cy={0} r={dotRadius} fill={SG_INDICATOR} />
             <line
               x1={0}
               y1={0}
               x2={-indicatorLength}
               y2={0}
-              stroke="#dc2626"
+              stroke={SG_INDICATOR}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
@@ -78,7 +92,7 @@ const SGRenderer: React.FC<{ horizontal: boolean; cellSize: number }> = ({
               y1={0}
               x2={indicatorLength}
               y2={0}
-              stroke="#dc2626"
+              stroke={SG_INDICATOR}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
@@ -88,13 +102,13 @@ const SGRenderer: React.FC<{ horizontal: boolean; cellSize: number }> = ({
         <>
           {/* Up indicator (SPIN_UP) */}
           <g transform={`translate(${center}, ${center})`}>
-            <circle cx={0} cy={0} r={dotRadius} fill="#dc2626" />
+            <circle cx={0} cy={0} r={dotRadius} fill={SG_INDICATOR} />
             <line
               x1={0}
               y1={0}
               x2={0}
               y2={-indicatorLength}
-              stroke="#dc2626"
+              stroke={SG_INDICATOR}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
@@ -107,7 +121,7 @@ const SGRenderer: React.FC<{ horizontal: boolean; cellSize: number }> = ({
               y1={0}
               x2={0}
               y2={indicatorLength}
-              stroke="#dc2626"
+              stroke={SG_INDICATOR}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
@@ -133,8 +147,8 @@ const DetectorRenderer: React.FC<{ name: string; cellSize: number }> = ({
         y={inset}
         width={cellSize - 2 * inset}
         height={cellSize - 2 * inset}
-        fill="#e0e7ff"
-        stroke="#6366f1"
+        fill={DETECTOR_BACKGROUND}
+        stroke={DETECTOR_BORDER}
         strokeWidth={2}
         rx={4}
       />
@@ -145,14 +159,14 @@ const DetectorRenderer: React.FC<{ name: string; cellSize: number }> = ({
         cy={cellSize * 0.35}
         r={cellSize * 0.15}
         fill="none"
-        stroke="#6366f1"
+        stroke={DETECTOR_ICON}
         strokeWidth={2}
       />
       <circle
         cx={cellSize / 2}
         cy={cellSize * 0.35}
         r={cellSize * 0.08}
-        fill="#6366f1"
+        fill={DETECTOR_ICON}
       />
       
       {/* Detector label */}
@@ -162,7 +176,7 @@ const DetectorRenderer: React.FC<{ name: string; cellSize: number }> = ({
         textAnchor="middle"
         fontSize={cellSize * 0.3}
         fontWeight="700"
-        fill="#4338ca"
+        fill={DETECTOR_TEXT}
       >
         {name}
       </text>
@@ -180,12 +194,12 @@ const SplitterRenderer: React.FC<{ norm: any; cellSize: number }> = ({
 
   return (
     <g>
-      {/* Reflective surface gradient - green */}
+      {/* Reflective surface gradient - darker green for dark theme */}
       <defs>
         <linearGradient id="splitter-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#d1fae5', stopOpacity: 0.8 }} />
-          <stop offset="50%" style={{ stopColor: '#a7f3d0', stopOpacity: 0.6 }} />
-          <stop offset="100%" style={{ stopColor: '#d1fae5', stopOpacity: 0.8 }} />
+          <stop offset="0%" style={{ stopColor: MOVEMENT_GLOW, stopOpacity: 1 }} />
+          <stop offset="50%" style={{ stopColor: MOVEMENT_GLOW, stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: MOVEMENT_GLOW, stopOpacity: 1 }} />
         </linearGradient>
       </defs>
       
@@ -204,7 +218,7 @@ const SplitterRenderer: React.FC<{ norm: any; cellSize: number }> = ({
             y1={cellSize * 0.95}
             x2={cellSize * 0.95}
             y2={cellSize * 0.05}
-            stroke="#10b981"
+            stroke={GREEN_SOLID}
             strokeWidth={3}
             strokeDasharray="8,4"
           />
@@ -224,7 +238,7 @@ const SplitterRenderer: React.FC<{ norm: any; cellSize: number }> = ({
             y1={cellSize * 0.05}
             x2={cellSize * 0.95}
             y2={cellSize * 0.95}
-            stroke="#10b981"
+            stroke={GREEN_SOLID}
             strokeWidth={3}
             strokeDasharray="8,4"
           />
@@ -242,14 +256,14 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
 
   return (
     <g>
-      {/* Background glow - lighter green, thicker */}
+      {/* Background glow - darker green for dark theme */}
       {/* Horizontal line (from left to center) - glow */}
       <line
         x1={cellSize * 0.15}
         y1={center}
         x2={center}
         y2={center}
-        stroke="#d1fae5"
+        stroke={MOVEMENT_GLOW}
         strokeWidth={12}
         strokeLinecap="round"
       />
@@ -260,7 +274,7 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
         y1={cellSize * 0.85}
         x2={center}
         y2={center}
-        stroke="#d1fae5"
+        stroke={MOVEMENT_GLOW}
         strokeWidth={12}
         strokeLinecap="round"
       />
@@ -271,7 +285,7 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
         y1={center}
         x2={cellSize * 0.70}
         y2={center}
-        stroke="#d1fae5"
+        stroke={MOVEMENT_GLOW}
         strokeWidth={12}
       />
       
@@ -280,7 +294,7 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
         points={`${cellSize * 0.70},${center - arrowSizeGlow / 2} ${
           cellSize * 0.95
         },${center} ${cellSize * 0.70},${center + arrowSizeGlow / 2}`}
-        fill="#d1fae5"
+        fill={MOVEMENT_GLOW}
       />
       
       {/* Foreground - normal green, thinner */}
@@ -290,7 +304,7 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
         y1={center}
         x2={center}
         y2={center}
-        stroke="#10b981"
+        stroke={GREEN_SOLID}
         strokeWidth={3}
         strokeLinecap="round"
       />
@@ -301,7 +315,7 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
         y1={cellSize * 0.85}
         x2={center}
         y2={center}
-        stroke="#10b981"
+        stroke={GREEN_SOLID}
         strokeWidth={3}
         strokeLinecap="round"
       />
@@ -312,7 +326,7 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
         y1={center}
         x2={cellSize * 0.78}
         y2={center}
-        stroke="#10b981"
+        stroke={GREEN_SOLID}
         strokeWidth={3}
       />
       
@@ -321,7 +335,7 @@ const JoinerRenderer: React.FC<{ cellSize: number }> = ({ cellSize }) => {
         points={`${cellSize * 0.73},${center - arrowSize / 2} ${
           cellSize * 0.88
         },${center} ${cellSize * 0.73},${center + arrowSize / 2}`}
-        fill="#10b981"
+        fill={GREEN_SOLID}
       />
     </g>
   );
@@ -337,12 +351,12 @@ const MirrorRenderer: React.FC<{ norm: any; cellSize: number }> = ({
 
   return (
     <g>
-      {/* Reflective surface gradient - green */}
+      {/* Reflective surface gradient - darker green for dark theme */}
       <defs>
         <linearGradient id="mirror-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#d1fae5', stopOpacity: 0.8 }} />
-          <stop offset="50%" style={{ stopColor: '#a7f3d0', stopOpacity: 0.6 }} />
-          <stop offset="100%" style={{ stopColor: '#d1fae5', stopOpacity: 0.8 }} />
+          <stop offset="0%" style={{ stopColor: MOVEMENT_GLOW, stopOpacity: 1 }} />
+          <stop offset="50%" style={{ stopColor: MOVEMENT_GLOW, stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: MOVEMENT_GLOW, stopOpacity: 1 }} />
         </linearGradient>
       </defs>
       
@@ -361,7 +375,7 @@ const MirrorRenderer: React.FC<{ norm: any; cellSize: number }> = ({
             y1={cellSize * 0.95}
             x2={cellSize * 0.95}
             y2={cellSize * 0.05}
-            stroke="#10b981"
+            stroke={GREEN_SOLID}
             strokeWidth={3}
           />
         </>
@@ -380,7 +394,7 @@ const MirrorRenderer: React.FC<{ norm: any; cellSize: number }> = ({
             y1={cellSize * 0.05}
             x2={cellSize * 0.95}
             y2={cellSize * 0.95}
-            stroke="#10b981"
+            stroke={GREEN_SOLID}
             strokeWidth={3}
           />
         </>
@@ -400,14 +414,13 @@ const GlassRenderer: React.FC<{ phaseShift: any; cellSize: number }> = ({
   
   return (
     <g>
-      {/* Glass material - cyan theme */}
+      {/* Glass material - darker cyan for dark theme */}
       <rect
         x={inset}
         y={inset}
         width={cellSize - 2 * inset}
         height={cellSize - 2 * inset}
-        fill="#cffafe"
-        opacity={0.5}
+        fill={GLASS_BACKGROUND}
       />
       <rect
         x={inset}
@@ -415,7 +428,7 @@ const GlassRenderer: React.FC<{ phaseShift: any; cellSize: number }> = ({
         width={cellSize - 2 * inset}
         height={cellSize - 2 * inset}
         fill="none"
-        stroke="#06b6d4"
+        stroke={GLASS_BORDER}
         strokeWidth={2}
         strokeDasharray="4,2"
         rx={2}
@@ -428,7 +441,7 @@ const GlassRenderer: React.FC<{ phaseShift: any; cellSize: number }> = ({
         textAnchor="middle"
         fontSize={cellSize * 0.2}
         fontWeight="600"
-        fill="#0891b2"
+        fill={GLASS_TEXT}
       >
         φ
       </text>
@@ -438,7 +451,7 @@ const GlassRenderer: React.FC<{ phaseShift: any; cellSize: number }> = ({
         textAnchor="middle"
         fontSize={cellSize * 0.18}
         fontWeight="500"
-        fill="#0e7490"
+        fill={GLASS_TEXT}
       >
         {phaseAngle}°
       </text>

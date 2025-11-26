@@ -5,6 +5,18 @@ import React from 'react';
 import { branchProbability } from '../core/simulation';
 import { vecZero } from '../core/vec';
 import type { Branch } from '../core/types';
+import {
+  PARTICLE_BACKGROUND,
+  PARTICLE_BORDER,
+  PROBABILITY_PIE,
+  PROBABILITY_TEXT,
+  PHASE_LINE,
+  PHASE_DOT,
+  SPIN_LINE,
+  SPIN_DOT,
+  VELOCITY_ARROW,
+  VELOCITY_ARROWHEAD,
+} from '../styles/colors';
 
 interface ParticleVisualizationProps {
   branch: Branch;
@@ -41,20 +53,13 @@ export const ParticleVisualization: React.FC<ParticleVisualizationProps> = ({
         />
       )}
 
-      {/* Base circle with subtle gradient */}
-      <defs>
-        <radialGradient id="particle-gradient">
-          <stop offset="0%" style={{ stopColor: '#ffffff', stopOpacity: 1 }} />
-          <stop offset="70%" style={{ stopColor: '#f9fafb', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#e5e7eb', stopOpacity: 1 }} />
-        </radialGradient>
-      </defs>
+      {/* Base circle - matches detector background */}
       <circle
         cx={0}
         cy={0}
         r={ELECTRON_RADIUS}
-        fill="url(#particle-gradient)"
-        stroke="#374151"
+        fill={PARTICLE_BACKGROUND}
+        stroke={PARTICLE_BORDER}
         strokeWidth={2}
       />
 
@@ -63,8 +68,8 @@ export const ParticleVisualization: React.FC<ParticleVisualizationProps> = ({
         <PieSlice
           radius={ELECTRON_RADIUS}
           startAngle={0}
-          endAngle={pAngle}
-          color="#6366f1"
+          endAngle={-pAngle}
+          color={PROBABILITY_PIE}
         />
       )}
 
@@ -81,7 +86,7 @@ export const ParticleVisualization: React.FC<ParticleVisualizationProps> = ({
           y={ELECTRON_RADIUS + 12}
           textAnchor="middle"
           fontSize={Math.max(8, cellSize * 0.08)}
-          fill="#374151"
+          fill={PROBABILITY_TEXT}
           fontWeight="500"
         >
           {(p * 100).toFixed(0)}%
@@ -131,7 +136,7 @@ const VelocityArrow: React.FC<{
         y1={0}
         x2={arrowLineLength}
         y2={0}
-        stroke="#10b981"
+        stroke={VELOCITY_ARROW}
         strokeWidth={3}
         strokeLinecap="round"
       />
@@ -139,7 +144,7 @@ const VelocityArrow: React.FC<{
         points={`${arrowLineLength},${-arrowheadSize / 2} ${
           arrowTipLength
         },0 ${arrowLineLength},${arrowheadSize / 2}`}
-        fill="#10b981"
+        fill={VELOCITY_ARROWHEAD}
       />
     </g>
   );
@@ -158,12 +163,15 @@ const PieSlice: React.FC<{
   const endX = radius * Math.cos(endAngle);
   const endY = radius * Math.sin(endAngle);
 
-  const largeArcFlag = endAngle - startAngle > Math.PI ? 1 : 0;
+  const largeArcFlag = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
 
+  // Sweep flag 0 for counter-clockwise, 1 for clockwise
+  const sweepFlag = endAngle < startAngle ? 0 : 1;
+  
   const pathData = [
     `M 0 0`,
     `L ${startX} ${startY}`,
-    `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`,
     `Z`,
   ].join(' ');
 
@@ -182,7 +190,7 @@ const PhaseArrow: React.FC<{ angle: number; radius: number }> = ({
   return (
     <g>
       {/* Center dot */}
-      <circle cx={0} cy={0} r={3} fill="#06b6d4" />
+      <circle cx={0} cy={0} r={3} fill={PHASE_DOT} />
       
       {/* Line from center */}
       <g transform={`rotate(${(angle * 180) / Math.PI})`}>
@@ -191,7 +199,7 @@ const PhaseArrow: React.FC<{ angle: number; radius: number }> = ({
           y1={0}
           x2={length}
           y2={0}
-          stroke="#06b6d4"
+          stroke={PHASE_LINE}
           strokeWidth={2.5}
           strokeLinecap="round"
         />
@@ -217,7 +225,7 @@ const SpinLine: React.FC<{ angle: number; radius: number }> = ({
   return (
     <g>
       {/* Center dot */}
-      <circle cx={0} cy={0} r={3} fill="#ec4899" />
+      <circle cx={0} cy={0} r={3} fill={SPIN_DOT} />
       
       {/* Line from center */}
       <g transform={`rotate(${(svgAngle * 180) / Math.PI})`}>
@@ -226,7 +234,7 @@ const SpinLine: React.FC<{ angle: number; radius: number }> = ({
           y1={0}
           x2={length}
           y2={0}
-          stroke="#ec4899"
+          stroke={SPIN_LINE}
           strokeWidth={2.5}
           strokeLinecap="round"
         />

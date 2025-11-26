@@ -78,13 +78,14 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
     <div
       style={{
         padding: '20px',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#1a1a1a',
         borderRadius: '8px',
         maxWidth: '300px',
+        border: '1px solid #404040',
       }}
     >
-      <h3 style={{ marginTop: 0 }}>Component Palette</h3>
-      <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+      <h3 style={{ marginTop: 0, color: '#e5e5e5' }}>Component Palette</h3>
+      <p style={{ fontSize: '14px', color: '#a3a3a3', marginBottom: '15px' }}>
         Click to select a component, then click on the grid to place it. Right-click
         to remove.
       </p>
@@ -102,9 +103,9 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             }}
             style={{
               padding: '12px',
-              backgroundColor: isSelected(option) ? '#2196f3' : 'white',
-              color: isSelected(option) ? 'white' : '#333',
-              border: '2px solid ' + (isSelected(option) ? '#1976d2' : '#ddd'),
+              backgroundColor: isSelected(option) ? '#3b82f6' : '#404040',
+              color: isSelected(option) ? 'white' : '#e5e5e5',
+              border: '2px solid ' + (isSelected(option) ? '#2563eb' : '#525252'),
               borderRadius: '4px',
               cursor: 'pointer',
               textAlign: 'left',
@@ -113,12 +114,12 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             }}
             onMouseEnter={(e) => {
               if (!isSelected(option)) {
-                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.backgroundColor = '#525252';
               }
             }}
             onMouseLeave={(e) => {
               if (!isSelected(option)) {
-                e.currentTarget.style.backgroundColor = 'white';
+                e.currentTarget.style.backgroundColor = '#404040';
               }
             }}
           >

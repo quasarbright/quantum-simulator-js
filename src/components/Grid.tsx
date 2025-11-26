@@ -56,8 +56,8 @@ export const Grid: React.FC<GridProps> = ({
       className="grid-container"
       style={{
         display: 'inline-block',
-        border: '2px solid #333',
-        backgroundColor: '#fafafa',
+        border: '2px solid #525252',
+        backgroundColor: '#0a0a0a',
       }}
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -81,8 +81,8 @@ export const Grid: React.FC<GridProps> = ({
                 y={row * CELL_SIZE}
                 width={CELL_SIZE}
                 height={CELL_SIZE}
-                fill={isSource ? '#e3f2fd' : 'white'}
-                stroke="#d1d5db"
+                fill={isSource ? '#2a2a2a' : '#1a1a1a'}
+                stroke="#404040"
                 strokeWidth={0.5}
                 style={{ cursor: 'pointer' }}
                 onClick={(e) => handleCellClick(x, y, e)}
@@ -111,7 +111,8 @@ export const Grid: React.FC<GridProps> = ({
                     y={row * CELL_SIZE + 20}
                     textAnchor="middle"
                     fontSize="12"
-                    fill="#666"
+                    fill="#d4d4d4"
+                    fontWeight="bold"
                     pointerEvents="none"
                   >
                     SOURCE

@@ -28,21 +28,23 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     <div
       style={{
         padding: '20px',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#1a1a1a',
         borderRadius: '8px',
         maxWidth: '400px',
+        border: '1px solid #404040',
       }}
     >
-      <h3 style={{ marginTop: 0 }}>Simulation Controls</h3>
+      <h3 style={{ marginTop: 0, color: '#e5e5e5' }}>Simulation Controls</h3>
 
       {/* Status display */}
       <div
         style={{
           padding: '12px',
-          backgroundColor: 'white',
+          backgroundColor: '#0a0a0a',
           borderRadius: '4px',
           marginBottom: '15px',
-          border: '1px solid #ddd',
+          border: '1px solid #525252',
+          color: '#e5e5e5',
         }}
       >
         <div style={{ marginBottom: '8px' }}>
@@ -136,6 +138,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             marginBottom: '8px',
             fontWeight: 'bold',
             fontSize: '14px',
+            color: '#e5e5e5',
           }}
         >
           Speed: {speed}x
@@ -156,7 +159,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           style={{
             display: 'flex',
             fontSize: '12px',
-            color: '#666',
+            color: '#a3a3a3',
             marginTop: '4px',
             position: 'relative',
           }}
@@ -174,10 +177,12 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         style={{
           marginTop: '20px',
           padding: '12px',
-          backgroundColor: '#e3f2fd',
+          backgroundColor: '#0a0a0a',
           borderRadius: '4px',
           fontSize: '12px',
           lineHeight: '1.5',
+          border: '1px solid #525252',
+          color: '#d4d4d4',
         }}
       >
         <strong>Instructions:</strong>

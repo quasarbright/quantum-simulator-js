@@ -231,8 +231,8 @@ function App() {
             onSelectComponent={setSelectedComponent}
           />
 
-          <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-            <h3 style={{ marginTop: 0 }}>Examples</h3>
+          <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#1a1a1a', borderRadius: '8px', border: '1px solid #404040' }}>
+            <h3 style={{ marginTop: 0, color: '#e5e5e5' }}>Examples</h3>
             {(Object.keys(EXAMPLES) as Array<keyof typeof EXAMPLES>).map((key) => (
               <button
                 key={key}
@@ -242,9 +242,9 @@ function App() {
                   width: '100%',
                   padding: '10px',
                   marginBottom: '8px',
-                  backgroundColor: currentExample === key ? '#2196f3' : 'white',
-                  color: currentExample === key ? 'white' : '#333',
-                  border: '2px solid ' + (currentExample === key ? '#1976d2' : '#ddd'),
+                  backgroundColor: currentExample === key ? '#3b82f6' : '#404040',
+                  color: currentExample === key ? 'white' : '#e5e5e5',
+                  border: '2px solid ' + (currentExample === key ? '#2563eb' : '#525252'),
                   borderRadius: '4px',
                   cursor: 'pointer',
                   fontSize: '14px',

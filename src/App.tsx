@@ -22,6 +22,7 @@ import { StatisticsPanel } from './components/StatisticsPanel';
 import { ComponentPropertiesPanel } from './components/ComponentPropertiesPanel';
 import { useHistory } from './hooks/useHistory';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useSelection } from './hooks/useSelection';
 import { 
   saveExperimentToLocalStorage,
   loadExperimentFromLocalStorage,
@@ -36,6 +37,7 @@ import {
   copyURLToClipboard 
 } from './utils/urlEncoding';
 import { runExperimentMultipleTimes, type StatisticsResult } from './core/statistics';
+import { experimentEquals } from './utils/experimentEquals';
 import './App.css';
 
 // Pre-loaded example experiments
@@ -150,8 +152,15 @@ function App() {
   const [isRunningStatistics, setIsRunningStatistics] = useState(false);
   const [statisticsProgress, setStatisticsProgress] = useState<{ current: number; total: number } | null>(null);
   
-  // Component selection for properties editing
+  // Component properties editing (different from selection mode)
   const [selectedComponentPos, setSelectedComponentPos] = useState<Vec | null>(null);
+  
+  // Select mode state (start in select mode by default)
+  const [isSelectMode, setIsSelectMode] = useState(true);
+  const selection = useSelection();
+  
+  // Rectangle selection state
+  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
 
   // Animation loop
   const animationFrameRef = useRef<number | undefined>(undefined);
@@ -205,6 +214,9 @@ function App() {
 
   // Add component to grid
   const handleAddComponent = useCallback((position: Vec, component: Component) => {
+    // Don't allow editing while running
+    if (isRunning) return;
+    
     const posKey = vecToKey(position);
 
     setSystem((prevSystem) => {
@@ -216,26 +228,50 @@ function App() {
         components: newComponents,
       };
 
-      const newSystem = createSystem(newExperiment);
-      setInitialSystem(newSystem);
-      setStepCount(0);
-      setDetectionResult(null);
-      setIsRunning(false);
+      // Only push to history if experiment actually changed
+      if (!experimentEquals(prevSystem.experiment, newExperiment)) {
+        const newSystem = createSystem(newExperiment);
+        setInitialSystem(newSystem);
+        setStepCount(0);
+        setDetectionResult(null);
+        setIsRunning(false);
+        setSimulationHistory([]);
+        setCurrentStepIndex(-1);
 
-      // Push to history for undo/redo
-      history.push(newExperiment);
+        // Push to history for undo/redo
+        history.push(newExperiment);
+        
+        // Validate experiment (debounced)
+        if (validationTimerRef.current) {
+          clearTimeout(validationTimerRef.current);
+        }
+        validationTimerRef.current = window.setTimeout(() => {
+          setValidationResult(validateExperiment(newExperiment));
+        }, 500);
 
-      return newSystem;
+        return newSystem;
+      }
+      
+      // No change, return previous system
+      return prevSystem;
     });
-  }, [history]);
+  }, [history, isRunning]);
 
   // Remove component from grid
   const handleRemoveComponent = useCallback((position: Vec) => {
+    // Don't allow editing while running
+    if (isRunning) return;
+    
     const posKey = vecToKey(position);
 
     setSystem((prevSystem) => {
       const newComponents = new Map(prevSystem.experiment.components);
-      newComponents.delete(posKey);
+      const didDelete = newComponents.delete(posKey);
+
+      // Only proceed if we actually deleted something
+      if (!didDelete) {
+        return prevSystem;
+      }
 
       const newExperiment = {
         ...prevSystem.experiment,
@@ -263,7 +299,7 @@ function App() {
 
       return newSystem;
     });
-  }, [history]);
+  }, [history, isRunning]);
 
   // Load example experiment
   const loadExample = useCallback((exampleKey: keyof typeof EXAMPLES) => {
@@ -277,21 +313,19 @@ function App() {
     setIsRunning(false);
     setSelectedComponent(null);
     setIsPanMode(false);
+    setSimulationHistory([]);
+    setCurrentStepIndex(-1);
     
     // Clear history when loading example
     history.clear();
   }, [history]);
 
-  // Toggle pan mode
-  const togglePanMode = useCallback(() => {
-    setIsPanMode((prev) => !prev);
-    if (!isPanMode) {
-      setSelectedComponent(null); // Deselect any component when entering pan mode
-    }
-  }, [isPanMode]);
 
   // Undo last action
   const handleUndo = useCallback(() => {
+    // Don't allow undo while running
+    if (isRunning) return;
+    
     const previousExperiment = history.undo();
     if (previousExperiment) {
       const newSystem = createSystem(previousExperiment);
@@ -300,11 +334,16 @@ function App() {
       setStepCount(0);
       setDetectionResult(null);
       setIsRunning(false);
+      setSimulationHistory([]);
+      setCurrentStepIndex(-1);
     }
-  }, [history]);
+  }, [history, isRunning]);
 
   // Redo last undone action
   const handleRedo = useCallback(() => {
+    // Don't allow redo while running
+    if (isRunning) return;
+    
     const nextExperiment = history.redo();
     if (nextExperiment) {
       const newSystem = createSystem(nextExperiment);
@@ -313,8 +352,10 @@ function App() {
       setStepCount(0);
       setDetectionResult(null);
       setIsRunning(false);
+      setSimulationHistory([]);
+      setCurrentStepIndex(-1);
     }
-  }, [history]);
+  }, [history, isRunning]);
 
   // Handle tool selection by number (1-9)
   const handleSelectTool = useCallback((toolIndex: number) => {
@@ -401,6 +442,8 @@ function App() {
       setDetectionResult(null);
       setIsRunning(false);
       setExperimentName(name);
+      setSimulationHistory([]);
+      setCurrentStepIndex(-1);
       history.clear();
     } else {
       alert(`Failed to load experiment "${name}"`);
@@ -426,6 +469,8 @@ function App() {
       setDetectionResult(null);
       setIsRunning(false);
       setExperimentName(file.name.replace('.json', ''));
+      setSimulationHistory([]);
+      setCurrentStepIndex(-1);
       history.clear();
       alert('Experiment imported successfully!');
     } else {
@@ -479,20 +524,23 @@ function App() {
     }, 100);
   }, [system.experiment]);
 
-  // Select component for editing
-  const handleSelectComponent = useCallback((position: Vec) => {
-    setSelectedComponentPos(position);
-  }, []);
+  // Copy selection
+  const handleCopy = useCallback(() => {
+    if (!isSelectMode || !selection.hasSelection) return;
+    selection.copySelection(system.experiment);
+  }, [isSelectMode, selection, system.experiment]);
 
-  // Update component properties
-  const handleUpdateComponentProperties = useCallback((updatedComponent: Component) => {
-    if (!selectedComponentPos) return;
-
-    const posKey = vecToKey(selectedComponentPos);
+  // Cut selection
+  const handleCut = useCallback(() => {
+    if (!isSelectMode || !selection.hasSelection || isRunning) return;
+    
+    const keysToRemove = selection.cutSelection(system.experiment);
     
     setSystem((prevSystem) => {
       const newComponents = new Map(prevSystem.experiment.components);
-      newComponents.set(posKey, updatedComponent);
+      for (const key of keysToRemove) {
+        newComponents.delete(key);
+      }
 
       const newExperiment = {
         ...prevSystem.experiment,
@@ -507,10 +555,8 @@ function App() {
       setSimulationHistory([]);
       setCurrentStepIndex(-1);
 
-      // Push to history for undo/redo
       history.push(newExperiment);
-      
-      // Validate experiment
+
       if (validationTimerRef.current) {
         clearTimeout(validationTimerRef.current);
       }
@@ -520,7 +566,161 @@ function App() {
 
       return newSystem;
     });
-  }, [selectedComponentPos, history]);
+
+    selection.clearSelection();
+  }, [isSelectMode, selection, system.experiment, isRunning, history]);
+
+  // Paste selection
+  const handlePaste = useCallback(() => {
+    if (!isSelectMode || !selection.hasClipboard || isRunning) return;
+    
+    // Only paste if a cell is selected
+    if (selection.selectedPositions.size === 0) return;
+    
+    // Use first selected cell position as paste target
+    const firstKey = Array.from(selection.selectedPositions)[0];
+    const parts = firstKey.split(',');
+    const x = parseFloat(parts[0]);
+    const y = parseFloat(parts[2]);
+    const pastePos = vec(x, y);
+    const newComponents = selection.pasteSelection(pastePos);
+
+    if (!newComponents) return;
+
+    setSystem((prevSystem) => {
+      const components = new Map(prevSystem.experiment.components);
+      
+      // Add all pasted components
+      for (const [key, component] of newComponents) {
+        components.set(key, component);
+      }
+
+      const newExperiment = {
+        ...prevSystem.experiment,
+        components,
+      };
+
+      if (!experimentEquals(prevSystem.experiment, newExperiment)) {
+        const newSystem = createSystem(newExperiment);
+        setInitialSystem(newSystem);
+        setStepCount(0);
+        setDetectionResult(null);
+        setIsRunning(false);
+        setSimulationHistory([]);
+        setCurrentStepIndex(-1);
+
+        history.push(newExperiment);
+
+        if (validationTimerRef.current) {
+          clearTimeout(validationTimerRef.current);
+        }
+        validationTimerRef.current = window.setTimeout(() => {
+          setValidationResult(validateExperiment(newExperiment));
+        }, 500);
+
+        // Select the newly pasted components
+        selection.clearSelection();
+        for (const key of newComponents.keys()) {
+          selection.addToSelection(key);
+        }
+
+        return newSystem;
+      }
+
+      return prevSystem;
+    });
+  }, [selection, isRunning, history, isSelectMode]);
+
+  // Delete selection
+  const handleDeleteSelection = useCallback(() => {
+    if (!isSelectMode || !selection.hasSelection || isRunning) return;
+
+    setSystem((prevSystem) => {
+      const newComponents = new Map(prevSystem.experiment.components);
+      
+      for (const key of selection.selectedPositions) {
+        newComponents.delete(key);
+      }
+
+      const newExperiment = {
+        ...prevSystem.experiment,
+        components: newComponents,
+      };
+
+      const newSystem = createSystem(newExperiment);
+      setInitialSystem(newSystem);
+      setStepCount(0);
+      setDetectionResult(null);
+      setIsRunning(false);
+      setSimulationHistory([]);
+      setCurrentStepIndex(-1);
+
+      history.push(newExperiment);
+
+      if (validationTimerRef.current) {
+        clearTimeout(validationTimerRef.current);
+      }
+      validationTimerRef.current = window.setTimeout(() => {
+        setValidationResult(validateExperiment(newExperiment));
+      }, 500);
+
+      return newSystem;
+    });
+
+    selection.clearSelection();
+  }, [isSelectMode, selection, isRunning, history]);
+
+  // Select component for editing
+  const handleSelectComponent = useCallback((position: Vec) => {
+    // Don't allow editing while running
+    if (isRunning) return;
+    
+    setSelectedComponentPos(position);
+  }, [isRunning]);
+
+  // Update component properties
+  const handleUpdateComponentProperties = useCallback((updatedComponent: Component) => {
+    if (!selectedComponentPos || isRunning) return;
+
+    const posKey = vecToKey(selectedComponentPos);
+    
+    setSystem((prevSystem) => {
+      const newComponents = new Map(prevSystem.experiment.components);
+      newComponents.set(posKey, updatedComponent);
+
+      const newExperiment = {
+        ...prevSystem.experiment,
+        components: newComponents,
+      };
+
+      // Only push to history if experiment actually changed
+      if (!experimentEquals(prevSystem.experiment, newExperiment)) {
+        const newSystem = createSystem(newExperiment);
+        setInitialSystem(newSystem);
+        setStepCount(0);
+        setDetectionResult(null);
+        setIsRunning(false);
+        setSimulationHistory([]);
+        setCurrentStepIndex(-1);
+
+        // Push to history for undo/redo
+        history.push(newExperiment);
+        
+        // Validate experiment
+        if (validationTimerRef.current) {
+          clearTimeout(validationTimerRef.current);
+        }
+        validationTimerRef.current = window.setTimeout(() => {
+          setValidationResult(validateExperiment(newExperiment));
+        }, 500);
+
+        return newSystem;
+      }
+      
+      // No change, return previous system
+      return prevSystem;
+    });
+  }, [selectedComponentPos, history, isRunning]);
 
   // Animation loop for auto-play
   useEffect(() => {
@@ -575,7 +775,11 @@ function App() {
     // Editing
     onUndo: handleUndo,
     onRedo: handleRedo,
-    // onDelete: will be added when selection mode is implemented
+    onCopy: handleCopy,
+    onCut: handleCut,
+    onPaste: handlePaste,
+    onDelete: handleDeleteSelection,
+    onSelectAll: () => isSelectMode && selection.selectAll(system.experiment),
     
     // File
     onSave: openSaveDialog,
@@ -594,12 +798,13 @@ function App() {
     onSelectTool: handleSelectTool,
     onEraser: handleEraserShortcut,
     onHandTool: handleHandToolShortcut,
-    // onSelectMode: will be added when selection mode is implemented
     
     // Deselect
     onDeselect: () => {
       setSelectedComponent(null);
       setIsPanMode(false);
+      selection.clearSelection();
+      setSelectionStart(null);
     },
   }, true);
 
@@ -619,6 +824,19 @@ function App() {
           onHoverCell={setHoveredCell}
           onZoomChange={setCurrentZoom}
           onSelectComponent={handleSelectComponent}
+          isSimulationRunning={isRunning}
+          isSelectMode={isSelectMode}
+          selectedPositions={selection.selectedPositions}
+          onSelectionClick={(pos, isShift) => {
+            if (isShift) {
+              selection.addToSelection(vecToKey(pos));
+            } else {
+              selection.selectComponent(vecToKey(pos));
+            }
+          }}
+          onSelectionRectangle={(x1, y1, x2, y2) => selection.selectRectangle(x1, y1, x2, y2, system.experiment)}
+          selectionStart={selectionStart}
+          onSetSelectionStart={setSelectionStart}
         />
       </div>
 
@@ -626,9 +844,26 @@ function App() {
       <div className="floating-panel component-palette-floating">
         <ComponentPalette
           selectedComponent={selectedComponent}
-          onSelectComponent={setSelectedComponent}
+          onSelectComponent={(comp) => {
+            setSelectedComponent(comp);
+            setIsSelectMode(false);
+            setIsPanMode(false);
+            selection.clearSelection();
+          }}
           isPanMode={isPanMode}
-          onTogglePanMode={togglePanMode}
+          onTogglePanMode={() => {
+            setIsPanMode(!isPanMode);
+            setIsSelectMode(false);
+            if (!isPanMode) setSelectedComponent(null);
+            selection.clearSelection();
+          }}
+          isSelectMode={isSelectMode}
+          onToggleSelectMode={() => {
+            setIsSelectMode(!isSelectMode);
+            setIsPanMode(false);
+            setSelectedComponent(null);
+            if (isSelectMode) selection.clearSelection();
+          }}
         />
       </div>
 
@@ -708,6 +943,7 @@ function App() {
         zoom={currentZoom}
         experimentName={experimentName}
         validationWarnings={validationResult.warnings.length + validationResult.errors.length}
+        isRunning={isRunning}
       />
     </div>
   );

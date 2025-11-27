@@ -18,6 +18,13 @@ interface GridProps {
   onHoverCell: (cell: { x: number; y: number } | null) => void;
   onZoomChange: (zoom: number) => void;
   onSelectComponent: (position: Vec) => void;
+  isSimulationRunning: boolean;
+  isSelectMode: boolean;
+  selectedPositions: Set<string>;
+  onSelectionClick: (position: Vec, isShiftKey: boolean) => void;
+  onSelectionRectangle: (x1: number, y1: number, x2: number, y2: number) => void;
+  selectionStart: { x: number; y: number } | null;
+  onSetSelectionStart: (start: { x: number; y: number } | null) => void;
 }
 
 // Transform between simulation coordinates and pixel coordinates
@@ -75,6 +82,13 @@ export const Grid: React.FC<GridProps> = ({
   onHoverCell,
   onZoomChange,
   onSelectComponent,
+  isSimulationRunning,
+  isSelectMode,
+  selectedPositions,
+  onSelectionClick,
+  onSelectionRectangle,
+  selectionStart,
+  onSetSelectionStart,
 }) => {
   const { experiment, particle } = system;
   
@@ -277,9 +291,18 @@ export const Grid: React.FC<GridProps> = ({
     }
   }, [isPanning, lastMousePos, isSpacePressed, isPanMode, transform, onHoverCell]);
   
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    // Complete rectangle selection
+    if (isSelectMode && selectionStart && !isSimulationRunning) {
+      const simCoords = pixelToSim(e.clientX, e.clientY, transform);
+      const gridX = Math.floor(simCoords.x);
+      const gridY = Math.floor(simCoords.y);
+      onSelectionRectangle(selectionStart.x, selectionStart.y, gridX, gridY);
+      onSetSelectionStart(null);
+    }
+
     setIsPanning(false);
-  }, []);
+  }, [isSelectMode, selectionStart, isSimulationRunning, transform, onSelectionRectangle, onSetSelectionStart]);
   
   const handleMouseLeave = useCallback(() => {
     setIsPanning(false);
@@ -328,6 +351,9 @@ export const Grid: React.FC<GridProps> = ({
   const handleCellClick = (e: React.MouseEvent) => {
     if (isPanning || isSpacePressed || isPanMode) return; // Don't place components while panning or in pan mode
     
+    // Disable editing while simulation is running
+    if (isSimulationRunning) return;
+    
     // Only handle left click
     if (e.button !== 0) return;
     
@@ -339,6 +365,12 @@ export const Grid: React.FC<GridProps> = ({
     const gridY = Math.floor(simCoords.y);
     const position = vec(gridX, gridY);
     const posKey = vecToKey(position);
+
+    // Select mode: handle selection
+    if (isSelectMode) {
+      onSelectionClick(position, e.shiftKey);
+      return;
+    }
 
     // Check if clicking on existing component with Ctrl/Cmd key for properties editing
     if (e.ctrlKey || e.metaKey) {
@@ -475,6 +507,20 @@ export const Grid: React.FC<GridProps> = ({
                   </text>
                 )}
                 
+                {/* Selection highlight for components */}
+                {selectedPositions.has(key) && (
+                  <rect
+                    x={pixelPos.x}
+                    y={pixelPos.y}
+                    width={cellPixelSize}
+                    height={cellPixelSize}
+                    fill="rgba(99, 102, 241, 0.2)"
+                    stroke="#6366f1"
+                    strokeWidth={3}
+                    pointerEvents="none"
+                  />
+                )}
+                
                 {/* Component rendering */}
                 <g
                   transform={`translate(${pixelPos.x}, ${pixelPos.y}) scale(${cellPixelSize / CELL_SIZE})`}
@@ -483,6 +529,35 @@ export const Grid: React.FC<GridProps> = ({
                   <ComponentRenderer component={component} cellSize={CELL_SIZE} />
                 </g>
               </g>
+            );
+          })}
+
+          {/* Selected empty cells (cells without components) */}
+          {isSelectMode && Array.from(selectedPositions).map((posKey) => {
+            // Only render highlight if there's no component at this position
+            if (experiment.components.has(posKey)) return null;
+            
+            const parts = posKey.split(',');
+            const x = parseFloat(parts[0]);
+            const y = parseFloat(parts[2]);
+            
+            if (!isComponentVisible(x, y)) return null;
+            
+            const pixelPos = getCellTopLeft(x, y, transform);
+            const cellPixelSize = transform.scale;
+            
+            return (
+              <rect
+                key={`selected-empty-${posKey}`}
+                x={pixelPos.x}
+                y={pixelPos.y}
+                width={cellPixelSize}
+                height={cellPixelSize}
+                fill="rgba(99, 102, 241, 0.2)"
+                stroke="#6366f1"
+                strokeWidth={3}
+                pointerEvents="none"
+              />
             );
           })}
           
@@ -539,8 +614,8 @@ export const Grid: React.FC<GridProps> = ({
           })}
         </g>
 
-        {/* Hovered cell highlight and ghost component (only in edit mode) */}
-        {hoveredCell && !isPanMode && !isSpacePressed && (
+        {/* Hovered cell highlight (only in placement mode, not select mode or running) */}
+        {hoveredCell && !isPanMode && !isSpacePressed && !isSimulationRunning && !isSelectMode && (
           <g>
             {(() => {
               const pixelPos = getCellTopLeft(hoveredCell.x, hoveredCell.y, transform);
@@ -561,7 +636,7 @@ export const Grid: React.FC<GridProps> = ({
                   />
                   
                   {/* Ghost component preview (only when placing) */}
-                  {selectedComponent && (
+                  {!isSelectMode && selectedComponent && (
                     <g
                       transform={`translate(${pixelPos.x}, ${pixelPos.y}) scale(${cellPixelSize / CELL_SIZE})`}
                       style={{ pointerEvents: 'none', opacity: 0.5 }}

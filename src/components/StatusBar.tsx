@@ -10,6 +10,7 @@ interface StatusBarProps {
   zoom: number;
   experimentName?: string;
   validationWarnings?: number;
+  isRunning: boolean;
 }
 
 function getToolName(component: Component | null): string {
@@ -42,8 +43,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   zoom,
   experimentName,
   validationWarnings = 0,
+  isRunning,
 }) => {
-  const mode = isPanMode ? 'Hand Tool' : (currentTool ? `Placing: ${getToolName(currentTool)}` : 'Eraser');
+  const mode = isRunning 
+    ? 'Simulation Running (Editing Disabled)' 
+    : (isPanMode ? 'Hand Tool' : (currentTool ? `Placing: ${getToolName(currentTool)}` : 'Eraser'));
   const zoomPercent = Math.round(zoom * 100);
 
   return (

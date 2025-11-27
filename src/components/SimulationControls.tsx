@@ -23,10 +23,7 @@ interface SimulationControlsProps {
   onShare: () => void;
   onStatistics: () => void;
   onPreviousStep: () => void;
-  onNextStep: () => void;
   canStepBack: boolean;
-  canStepForward: boolean;
-  totalSteps: number;
 }
 
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
@@ -49,10 +46,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   onShare,
   onStatistics,
   onPreviousStep,
-  onNextStep,
   canStepBack,
-  canStepForward,
-  totalSteps,
 }) => {
   const [showExamples, setShowExamples] = React.useState(false);
   
@@ -120,13 +114,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
 
       {/* Simulation control buttons */}
       <div style={{ display: 'flex', gap: '4px' }}>
+        {/* Step Back button */}
         <button
-          onClick={onStep}
-          disabled={isRunning || detectionResult !== null}
-          title="Step"
+          onClick={onPreviousStep}
+          disabled={!canStepBack}
+          title="Step Back"
           style={{
             padding: '8px 12px',
-            backgroundColor: '#2196f3',
+            backgroundColor: canStepBack ? '#6366f1' : '#404040',
             color: 'white',
             borderRadius: '6px',
             fontSize: '12px',
@@ -134,14 +129,16 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            cursor: canStepBack ? 'pointer' : 'not-allowed',
+            opacity: canStepBack ? 1 : 0.5,
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            <line x1="19" y1="3" x2="19" y2="21" stroke="currentColor" strokeWidth="2"></line>
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
           </svg>
         </button>
 
+        {/* Play/Pause button */}
         <button
           onClick={onTogglePlay}
           disabled={detectionResult !== null}
@@ -170,6 +167,29 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           )}
         </button>
 
+        {/* Step Forward button */}
+        <button
+          onClick={onStep}
+          disabled={isRunning || detectionResult !== null}
+          title="Step Forward"
+          style={{
+            padding: '8px 12px',
+            backgroundColor: '#2196f3',
+            color: 'white',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+          </svg>
+        </button>
+
+        {/* Reset button */}
         <button
           onClick={onReset}
           title="Reset"
@@ -304,64 +324,6 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           </svg>
         </button>
       </div>
-
-      {/* Step navigation */}
-      {totalSteps > 0 && (
-        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-          <button
-            onClick={onPreviousStep}
-            disabled={!canStepBack}
-            title="Previous Step"
-            style={{
-              padding: '8px',
-              backgroundColor: canStepBack ? '#6366f1' : '#404040',
-              color: 'white',
-              borderRadius: '6px',
-              fontSize: '12px',
-              cursor: canStepBack ? 'pointer' : 'not-allowed',
-              opacity: canStepBack ? 1 : 0.5,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-            </svg>
-          </button>
-          
-          <div style={{ 
-            padding: '4px 8px', 
-            backgroundColor: '#2a2a2a', 
-            borderRadius: '4px',
-            fontSize: '11px',
-            minWidth: '60px',
-            textAlign: 'center'
-          }}>
-            {stepCount} / {totalSteps}
-          </div>
-          
-          <button
-            onClick={onNextStep}
-            disabled={!canStepForward}
-            title="Next Step"
-            style={{
-              padding: '8px',
-              backgroundColor: canStepForward ? '#6366f1' : '#404040',
-              color: 'white',
-              borderRadius: '6px',
-              fontSize: '12px',
-              cursor: canStepForward ? 'pointer' : 'not-allowed',
-              opacity: canStepForward ? 1 : 0.5,
-              display: 'flex',
-              alignItems: 'center',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-            </svg>
-          </button>
-        </div>
-      )}
 
       {/* Status */}
       <div

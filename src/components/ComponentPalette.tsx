@@ -3,18 +3,15 @@
 import React from 'react';
 import Complex from 'complex.js';
 import { vec } from '../core/vec';
-import type { Component } from '../core/types';
+import type { Component, Mode } from '../core/types';
 import { sg, detector, splitter, joiner, mirror, glass } from '../core/types';
 import { ComponentRenderer } from './ComponentRenderer';
 import { COMPONENT_DESCRIPTIONS } from '../data/componentDescriptions';
 
 interface ComponentPaletteProps {
-  selectedComponent: Component | null;
-  onSelectComponent: (component: Component | null) => void;
-  isPanMode: boolean;
-  onTogglePanMode: () => void;
-  isSelectMode: boolean;
-  onToggleSelectMode: () => void;
+  mode: Mode;
+  onSelectMode: (mode: Mode) => void;
+  isSimulationRunning: boolean;
 }
 
 interface ComponentOption {
@@ -72,25 +69,22 @@ const COMPONENT_OPTIONS: ComponentOption[] = [
 ];
 
 export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
-  selectedComponent,
-  onSelectComponent,
-  isPanMode,
-  onTogglePanMode,
-  isSelectMode,
-  onToggleSelectMode,
+  mode,
+  onSelectMode,
+  isSimulationRunning,
 }) => {
   const isSelected = (option: ComponentOption) => {
-    if (!selectedComponent || isPanMode) return false;
-    return JSON.stringify(option.component) === JSON.stringify(selectedComponent);
+    if (typeof mode === 'string') return false;
+    return JSON.stringify(option.component) === JSON.stringify(mode);
   };
 
   const CELL_SIZE = 48;
 
   return (
     <>
-      {/* Hand tool (pan mode) */}
+      {/* Hand tool (pan mode) - always available for navigation */}
       <button
-        onClick={onTogglePanMode}
+        onClick={() => onSelectMode('PAN')}
         title={`${COMPONENT_DESCRIPTIONS.hand.name} (${COMPONENT_DESCRIPTIONS.hand.shortcut})\n${COMPONENT_DESCRIPTIONS.hand.description}\n${COMPONENT_DESCRIPTIONS.hand.details}`}
         style={{
           width: `${CELL_SIZE}px`,
@@ -98,7 +92,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
           padding: '0',
           backgroundColor: '#1a1a1a',
           color: '#e5e5e5',
-          border: isPanMode ? '2px solid #3b82f6' : '1px solid #404040',
+          border: mode === 'PAN' ? '2px solid #3b82f6' : '1px solid #404040',
           borderRadius: '8px',
           cursor: 'pointer',
           fontSize: '24px',
@@ -118,22 +112,24 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
 
       {/* Select Tool */}
       <button
-        onClick={onToggleSelectMode}
-        title="Select Tool: Select, copy, cut, paste, and move components (S)"
+        onClick={() => !isSimulationRunning && onSelectMode('SELECT')}
+        disabled={isSimulationRunning}
+        title={isSimulationRunning ? 'Disabled during simulation' : 'Select Tool: Select, copy, cut, paste, and move components (S)'}
         style={{
           width: `${CELL_SIZE}px`,
           height: `${CELL_SIZE}px`,
           padding: '0',
           backgroundColor: '#1a1a1a',
           color: '#e5e5e5',
-          border: isSelectMode ? '2px solid #3b82f6' : '1px solid #404040',
+          border: mode === 'SELECT' ? '2px solid #3b82f6' : '1px solid #404040',
           borderRadius: '8px',
-          cursor: 'pointer',
+          cursor: isSimulationRunning ? 'not-allowed' : 'pointer',
           fontSize: '24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'all 0.15s',
+          opacity: isSimulationRunning ? 0.5 : 1,
         }}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -146,13 +142,15 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
         <button
           key={idx}
           onClick={() => {
+            if (isSimulationRunning) return;
             if (isSelected(option)) {
-              onSelectComponent(null);
+              onSelectMode('ERASER');
             } else {
-              onSelectComponent(option.component);
+              onSelectMode(option.component);
             }
           }}
-          title={`${option.name}: ${option.description}`}
+          disabled={isSimulationRunning}
+          title={isSimulationRunning ? 'Disabled during simulation' : `${option.name}: ${option.description}`}
           style={{
             width: `${CELL_SIZE}px`,
             height: `${CELL_SIZE}px`,
@@ -160,44 +158,45 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             backgroundColor: '#1a1a1a',
             border: isSelected(option) ? '2px solid #3b82f6' : '1px solid #404040',
             borderRadius: '8px',
-            cursor: 'pointer',
+            cursor: isSimulationRunning ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transition: 'all 0.15s',
             overflow: 'hidden',
             position: 'relative',
+            opacity: isSimulationRunning ? 0.5 : 1,
           }}
         >
           <svg
-            width={CELL_SIZE}
-            height={CELL_SIZE}
+            width={CELL_SIZE - 8}
+            height={CELL_SIZE - 8}
             style={{ display: 'block' }}
           >
-            <ComponentRenderer component={option.component} cellSize={CELL_SIZE} />
+            <ComponentRenderer component={option.component} cellSize={CELL_SIZE - 8} />
           </svg>
         </button>
       ))}
       
       {/* Eraser */}
       <button
-        onClick={() => {
-          onSelectComponent(null);
-        }}
-        title="Eraser: Remove components"
+        onClick={() => !isSimulationRunning && onSelectMode('ERASER')}
+        disabled={isSimulationRunning}
+        title={isSimulationRunning ? 'Disabled during simulation' : 'Eraser: Remove components'}
         style={{
           width: `${CELL_SIZE}px`,
           height: `${CELL_SIZE}px`,
           padding: '0',
           backgroundColor: '#1a1a1a',
           color: '#e5e5e5',
-          border: (selectedComponent === null && !isPanMode && !isSelectMode) ? '2px solid #3b82f6' : '1px solid #404040',
+          border: mode === 'ERASER' ? '2px solid #3b82f6' : '1px solid #404040',
           borderRadius: '8px',
-          cursor: 'pointer',
+          cursor: isSimulationRunning ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'all 0.15s',
+          opacity: isSimulationRunning ? 0.5 : 1,
         }}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

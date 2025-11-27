@@ -52,6 +52,9 @@ export interface Glass {
 
 export type Component = SG | Detector | Splitter | Joiner | Mirror | Glass;
 
+// Mode represents the current editing mode in the UI
+export type Mode = Component | 'PAN' | 'SELECT' | 'ERASER';
+
 // Helper functions to create components
 export function sg(horizontal: boolean): SG {
   return { type: 'sg', horizontal };

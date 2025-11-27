@@ -1,11 +1,10 @@
 // Status bar showing current mode, coordinates, and context
 
 import React from 'react';
-import type { Component } from '../core/types';
+import type { Component, Mode } from '../core/types';
 
 interface StatusBarProps {
-  currentTool: Component | null;
-  isPanMode: boolean;
+  mode: Mode;
   hoveredCell: { x: number; y: number } | null;
   zoom: number;
   experimentName?: string;
@@ -37,17 +36,22 @@ function getToolName(component: Component | null): string {
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
-  currentTool,
-  isPanMode,
+  mode,
   hoveredCell,
   zoom,
   experimentName,
   validationWarnings = 0,
   isRunning,
 }) => {
-  const mode = isRunning 
-    ? 'Simulation Running (Editing Disabled)' 
-    : (isPanMode ? 'Hand Tool' : (currentTool ? `Placing: ${getToolName(currentTool)}` : 'Eraser'));
+  const getModeDisplay = () => {
+    if (isRunning) return 'Simulation Running (Editing Disabled)';
+    if (mode === 'PAN') return 'Hand Tool';
+    if (mode === 'SELECT') return 'Select Tool';
+    if (mode === 'ERASER') return 'Eraser';
+    return `Placing: ${getToolName(mode)}`;
+  };
+  
+  const modeDisplay = getModeDisplay();
   const zoomPercent = Math.round(zoom * 100);
 
   return (
@@ -72,7 +76,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       {/* Left: Current mode/tool */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <span style={{ color: '#e5e5e5', fontWeight: 'bold' }}>
-          {mode}
+          {modeDisplay}
         </span>
         {experimentName && (
           <span style={{ color: '#737373' }}>

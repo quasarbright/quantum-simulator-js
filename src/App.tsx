@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Complex from 'complex.js';
 import { vec, vecToKey, type Vec } from './core/vec';
 import { SPIN_UP } from './core/spin-state';
-import type { Branch, Component, Experiment, System } from './core/types';
+import type { Branch, Component, Experiment, System, Mode } from './core/types';
 import { detector, glass, joiner, mirror, sg, splitter } from './core/types';
 import {
   createSystem,
@@ -127,8 +127,7 @@ function App() {
   const history = useHistory(system.experiment);
 
   // UI state
-  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
-  const [isPanMode, setIsPanMode] = useState(false);
+  const [mode, setMode] = useState<Mode>('SELECT');
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [stepCount, setStepCount] = useState(0);
@@ -155,8 +154,7 @@ function App() {
   // Component properties editing (different from selection mode)
   const [selectedComponentPos, setSelectedComponentPos] = useState<Vec | null>(null);
   
-  // Select mode state (start in select mode by default)
-  const [isSelectMode, setIsSelectMode] = useState(true);
+  // Selection state
   const selection = useSelection();
   
   // Rectangle selection state
@@ -168,11 +166,23 @@ function App() {
   
   // Validation timer
   const validationTimerRef = useRef<number | undefined>(undefined);
+  
+  // Refs for step function to avoid recreating it
+  const currentStepIndexRef = useRef(currentStepIndex);
+  const simulationHistoryRef = useRef(simulationHistory);
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    currentStepIndexRef.current = currentStepIndex;
+    simulationHistoryRef.current = simulationHistory;
+  }, [currentStepIndex, simulationHistory]);
 
   // Step the simulation
   const step = useCallback(() => {
+    let newSystem: System;
+    
     setSystem((prevSystem) => {
-      const newSystem = systemStep(prevSystem);
+      newSystem = systemStep(prevSystem);
       const result = systemCheckForDetection(newSystem);
 
       if (result) {
@@ -182,20 +192,22 @@ function App() {
         setIsRunning(false);
       }
 
-      // Add to history
-      setSimulationHistory((prev) => {
-        // If we're not at the end of history, truncate future steps
-        const newHistory = currentStepIndex >= 0 
-          ? prev.slice(0, currentStepIndex + 1)
-          : prev;
-        return [...newHistory, newSystem];
-      });
-      setCurrentStepIndex((prev) => prev + 1);
-
       return newSystem;
     });
+    
+    // Update history - using refs to avoid recreating step callback
+    setSimulationHistory((prev) => {
+      const currentIndex = currentStepIndexRef.current;
+      // If we're not at the end of history, truncate future steps
+      const newHistory = currentIndex >= 0 && currentIndex < prev.length - 1
+        ? prev.slice(0, currentIndex + 1)
+        : prev;
+      return [...newHistory, newSystem];
+    });
+    
+    setCurrentStepIndex((prev) => prev + 1);
     setStepCount((count) => count + 1);
-  }, [currentStepIndex]);
+  }, []);
 
   // Reset the simulation
   const reset = useCallback(() => {
@@ -311,8 +323,7 @@ function App() {
     setStepCount(0);
     setDetectionResult(null);
     setIsRunning(false);
-    setSelectedComponent(null);
-    setIsPanMode(false);
+    setMode('SELECT');
     setSimulationHistory([]);
     setCurrentStepIndex(-1);
     
@@ -359,6 +370,9 @@ function App() {
 
   // Handle tool selection by number (1-9)
   const handleSelectTool = useCallback((toolIndex: number) => {
+    // Don't allow tool selection while running
+    if (isRunning) return;
+    
     // Map tool indices to components
     const tools = [
       sg(false),        // 1: SG Vertical
@@ -373,21 +387,22 @@ function App() {
     ];
     
     if (toolIndex >= 0 && toolIndex < tools.length) {
-      setSelectedComponent(tools[toolIndex]);
-      setIsPanMode(false);
+      setMode(tools[toolIndex]);
     }
-  }, []);
+  }, [isRunning]);
 
   // Handle eraser shortcut
   const handleEraserShortcut = useCallback(() => {
-    setSelectedComponent(null);
-    setIsPanMode(false);
-  }, []);
+    // Don't allow tool selection while running
+    if (isRunning) return;
+    setMode('ERASER');
+  }, [isRunning]);
 
   // Handle hand tool shortcut
   const handleHandToolShortcut = useCallback(() => {
-    setIsPanMode(true);
-    setSelectedComponent(null);
+    // Don't allow tool selection while running (but pan mode is OK)
+    // Actually, let's keep pan mode available during simulation for better UX
+    setMode('PAN');
   }, []);
 
   // Go to previous step
@@ -407,23 +422,6 @@ function App() {
       setIsRunning(false);
     }
   }, [currentStepIndex, simulationHistory, initialSystem]);
-
-  // Go to next step
-  const handleNextStep = useCallback(() => {
-    if (currentStepIndex < simulationHistory.length - 1) {
-      const newIndex = currentStepIndex + 1;
-      setCurrentStepIndex(newIndex);
-      setSystem(simulationHistory[newIndex]);
-      setStepCount(newIndex + 1);
-      
-      // Check if this step has detection
-      const result = systemCheckForDetection(simulationHistory[newIndex]);
-      if (result) {
-        setDetectionResult(result);
-      }
-    }
-  }, [currentStepIndex, simulationHistory]);
-
   // Save experiment
   const handleSave = useCallback((name: string) => {
     saveExperimentToLocalStorage(name, system.experiment);
@@ -526,13 +524,13 @@ function App() {
 
   // Copy selection
   const handleCopy = useCallback(() => {
-    if (!isSelectMode || !selection.hasSelection) return;
+    if (mode !== 'SELECT' || !selection.hasSelection) return;
     selection.copySelection(system.experiment);
-  }, [isSelectMode, selection, system.experiment]);
+  }, [mode, selection, system.experiment]);
 
   // Cut selection
   const handleCut = useCallback(() => {
-    if (!isSelectMode || !selection.hasSelection || isRunning) return;
+    if (mode !== 'SELECT' || !selection.hasSelection || isRunning) return;
     
     const keysToRemove = selection.cutSelection(system.experiment);
     
@@ -568,11 +566,11 @@ function App() {
     });
 
     selection.clearSelection();
-  }, [isSelectMode, selection, system.experiment, isRunning, history]);
+  }, [mode, selection, system.experiment, isRunning, history]);
 
   // Paste selection
   const handlePaste = useCallback(() => {
-    if (!isSelectMode || !selection.hasClipboard || isRunning) return;
+    if (mode !== 'SELECT' || !selection.hasClipboard || isRunning) return;
     
     // Only paste if a cell is selected
     if (selection.selectedPositions.size === 0) return;
@@ -626,11 +624,11 @@ function App() {
 
       return prevSystem;
     });
-  }, [selection, isRunning, history, isSelectMode]);
+  }, [selection, isRunning, history, mode]);
 
   // Delete selection
   const handleDeleteSelection = useCallback(() => {
-    if (!isSelectMode || !selection.hasSelection || isRunning) return;
+    if (mode !== 'SELECT' || !selection.hasSelection || isRunning) return;
 
     setSystem((prevSystem) => {
       const newComponents = new Map(prevSystem.experiment.components);
@@ -665,11 +663,11 @@ function App() {
     });
 
     selection.clearSelection();
-  }, [isSelectMode, selection, isRunning, history]);
+  }, [mode, selection, isRunning, history]);
 
   // Move selection by offset
   const handleMoveSelection = useCallback((offsetX: number, offsetY: number) => {
-    if (!isSelectMode || !selection.hasSelection || isRunning) return;
+    if (mode !== 'SELECT' || !selection.hasSelection || isRunning) return;
 
     const moveResult = selection.moveSelection(system.experiment, offsetX, offsetY);
     if (!moveResult) return;
@@ -725,7 +723,7 @@ function App() {
     for (const key of newSelection) {
       selection.selectedPositions.add(key);
     }
-  }, [isSelectMode, selection, isRunning, system.experiment, history]);
+  }, [mode, selection, isRunning, system.experiment, history]);
 
   // Select component for editing
   const handleSelectComponent = useCallback((position: Vec) => {
@@ -836,7 +834,7 @@ function App() {
     onCut: handleCut,
     onPaste: handlePaste,
     onDelete: handleDeleteSelection,
-    onSelectAll: () => isSelectMode && selection.selectAll(system.experiment),
+    onSelectAll: () => mode === 'SELECT' && selection.selectAll(system.experiment),
     
     // File
     onSave: openSaveDialog,
@@ -858,8 +856,7 @@ function App() {
     
     // Deselect
     onDeselect: () => {
-      setSelectedComponent(null);
-      setIsPanMode(false);
+      setMode('SELECT');
       selection.clearSelection();
       setSelectionStart(null);
     },
@@ -871,18 +868,16 @@ function App() {
       <div className="grid-container-wrapper">
         <Grid
           system={system}
-          selectedComponent={selectedComponent}
+          mode={mode}
           onAddComponent={handleAddComponent}
           onRemoveComponent={handleRemoveComponent}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onZoomToFit={handleZoomToFit}
-          isPanMode={isPanMode}
           onHoverCell={setHoveredCell}
           onZoomChange={setCurrentZoom}
           onSelectComponent={handleSelectComponent}
           isSimulationRunning={isRunning}
-          isSelectMode={isSelectMode}
           selectedPositions={selection.selectedPositions}
           onSelectionClick={(pos, isShift) => {
             if (isShift) {
@@ -901,27 +896,14 @@ function App() {
       {/* Floating component palette on the left */}
       <div className="floating-panel component-palette-floating">
         <ComponentPalette
-          selectedComponent={selectedComponent}
-          onSelectComponent={(comp) => {
-            setSelectedComponent(comp);
-            setIsSelectMode(false);
-            setIsPanMode(false);
-            selection.clearSelection();
+          mode={mode}
+          onSelectMode={(newMode) => {
+            setMode(newMode);
+            if (newMode !== 'SELECT') {
+              selection.clearSelection();
+            }
           }}
-          isPanMode={isPanMode}
-          onTogglePanMode={() => {
-            setIsPanMode(!isPanMode);
-            setIsSelectMode(false);
-            if (!isPanMode) setSelectedComponent(null);
-            selection.clearSelection();
-          }}
-          isSelectMode={isSelectMode}
-          onToggleSelectMode={() => {
-            setIsSelectMode(!isSelectMode);
-            setIsPanMode(false);
-            setSelectedComponent(null);
-            if (isSelectMode) selection.clearSelection();
-          }}
+          isSimulationRunning={isRunning}
         />
       </div>
 
@@ -947,10 +929,7 @@ function App() {
           onShare={handleShareURL}
           onStatistics={() => setShowStatistics(true)}
           onPreviousStep={handlePreviousStep}
-          onNextStep={handleNextStep}
           canStepBack={currentStepIndex >= 0}
-          canStepForward={currentStepIndex < simulationHistory.length - 1}
-          totalSteps={simulationHistory.length}
         />
       </div>
       
@@ -995,8 +974,7 @@ function App() {
 
       {/* Status Bar */}
       <StatusBar
-        currentTool={selectedComponent}
-        isPanMode={isPanMode}
+        mode={mode}
         hoveredCell={hoveredCell}
         zoom={currentZoom}
         experimentName={experimentName}

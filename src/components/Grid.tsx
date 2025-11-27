@@ -2,24 +2,22 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { vec, vecEqual, vecToKey, type Vec } from '../core/vec';
-import type { Component, System } from '../core/types';
+import type { Component, System, Mode } from '../core/types';
 import { ComponentRenderer } from './ComponentRenderer';
 import { ParticleVisualization } from './ParticleVisualization';
 
 interface GridProps {
   system: System;
-  selectedComponent: Component | null;
+  mode: Mode;
   onAddComponent: (position: Vec, component: Component) => void;
   onRemoveComponent: (position: Vec) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomToFit: () => void;
-  isPanMode: boolean;
   onHoverCell: (cell: { x: number; y: number } | null) => void;
   onZoomChange: (zoom: number) => void;
   onSelectComponent: (position: Vec) => void;
   isSimulationRunning: boolean;
-  isSelectMode: boolean;
   selectedPositions: Set<string>;
   onSelectionClick: (position: Vec, isShiftKey: boolean) => void;
   onSelectionRectangle: (x1: number, y1: number, x2: number, y2: number) => void;
@@ -73,18 +71,16 @@ const parseVecFromKey = (key: string): { x: number; y: number } => {
 
 export const Grid: React.FC<GridProps> = ({
   system,
-  selectedComponent,
+  mode,
   onAddComponent,
   onRemoveComponent,
   onZoomIn,
   onZoomOut,
   onZoomToFit,
-  isPanMode,
   onHoverCell,
   onZoomChange,
   onSelectComponent,
   isSimulationRunning,
-  isSelectMode,
   selectedPositions,
   onSelectionClick,
   onSelectionRectangle,
@@ -93,6 +89,11 @@ export const Grid: React.FC<GridProps> = ({
   onMoveSelection,
 }) => {
   const { experiment, particle } = system;
+  
+  // Helper functions to check mode
+  const isPanMode = mode === 'PAN';
+  const isSelectMode = mode === 'SELECT';
+  const selectedComponent = (typeof mode === 'string') ? null : mode;
   
   // Transform state - initialize with origin near bottom left
   const [transform, setTransform] = useState<Transform>(() => ({
@@ -491,7 +492,11 @@ export const Grid: React.FC<GridProps> = ({
         height="100%"
         style={{ 
           display: 'block',
-          cursor: isDraggingSelection ? 'grabbing' : (isSelectMode && hoveredCell && selectedPositions.has(vecToKey(vec(hoveredCell.x, hoveredCell.y)))) ? 'move' : 'default',
+          cursor: isSimulationRunning && !isSelectMode && !isPanMode 
+            ? 'not-allowed'
+            : isDraggingSelection ? 'grabbing' 
+            : (isSelectMode && hoveredCell && selectedPositions.has(vecToKey(vec(hoveredCell.x, hoveredCell.y)))) ? 'move' 
+            : 'default',
           userSelect: 'none',
           WebkitUserSelect: 'none',
         }}

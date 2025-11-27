@@ -25,6 +25,7 @@ interface GridProps {
   onSelectionRectangle: (x1: number, y1: number, x2: number, y2: number) => void;
   selectionStart: { x: number; y: number } | null;
   onSetSelectionStart: (start: { x: number; y: number } | null) => void;
+  onMoveSelection: (offsetX: number, offsetY: number) => void;
 }
 
 // Transform between simulation coordinates and pixel coordinates
@@ -89,6 +90,7 @@ export const Grid: React.FC<GridProps> = ({
   onSelectionRectangle,
   selectionStart,
   onSetSelectionStart,
+  onMoveSelection,
 }) => {
   const { experiment, particle } = system;
   
@@ -213,6 +215,10 @@ export const Grid: React.FC<GridProps> = ({
   
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const [mouseDownPos, setMouseDownPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDraggingSelection, setIsDraggingSelection] = useState(false);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -261,13 +267,45 @@ export const Grid: React.FC<GridProps> = ({
   
   // Handle mouse drag for panning
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Prevent text selection during drag
+    e.preventDefault();
+    
+    // Pan mode handling
     if (e.button === 1 || (e.button === 0 && e.shiftKey) || (e.button === 0 && isSpacePressed) || (e.button === 0 && isPanMode)) {
       // Middle mouse, Shift+Left mouse, Space+Left mouse, or pan mode button starts panning
-      e.preventDefault();
       setIsPanning(true);
       setLastMousePos({ x: e.clientX, y: e.clientY });
+      return;
     }
-  }, [isSpacePressed, isPanMode]);
+
+    // Left click only
+    if (e.button !== 0) return;
+    
+    // Store mouse down position for click vs drag detection
+    setMouseDownPos({ x: e.clientX, y: e.clientY });
+    setIsMouseDown(true);
+    
+    // Skip if simulation is running
+    if (isSimulationRunning) return;
+    
+    // In select mode, check if clicking on a selected cell
+    if (isSelectMode) {
+      const simCoords = pixelToSim(e.clientX, e.clientY, transform);
+      const gridX = Math.floor(simCoords.x);
+      const gridY = Math.floor(simCoords.y);
+      const posKey = vecToKey(vec(gridX, gridY));
+      
+      // If clicking on a selected cell, prepare for drag-to-move
+      if (selectedPositions.has(posKey)) {
+        setIsDraggingSelection(true);
+        setDragOffset({ x: 0, y: 0 });
+        return;
+      }
+      
+      // Otherwise, start rectangle selection
+      onSetSelectionStart({ x: gridX, y: gridY });
+    }
+  }, [isSpacePressed, isPanMode, isSelectMode, isSimulationRunning, transform, selectedPositions, onSetSelectionStart]);
   
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning) {
@@ -280,6 +318,13 @@ export const Grid: React.FC<GridProps> = ({
       }));
       setLastMousePos({ x: e.clientX, y: e.clientY });
       setHoveredCell(null); // Clear hover when panning
+    } else if (isDraggingSelection && mouseDownPos) {
+      // Calculate drag offset in grid cells
+      const startSimCoords = pixelToSim(mouseDownPos.x, mouseDownPos.y, transform);
+      const currentSimCoords = pixelToSim(e.clientX, e.clientY, transform);
+      const offsetX = Math.floor(currentSimCoords.x) - Math.floor(startSimCoords.x);
+      const offsetY = Math.floor(currentSimCoords.y) - Math.floor(startSimCoords.y);
+      setDragOffset({ x: offsetX, y: offsetY });
     } else if (!isSpacePressed && !isPanMode) {
       // Update hovered cell when in edit mode
       const simCoords = pixelToSim(e.clientX, e.clientY, transform);
@@ -289,23 +334,68 @@ export const Grid: React.FC<GridProps> = ({
       setHoveredCell(cell);
       onHoverCell(cell);
     }
-  }, [isPanning, lastMousePos, isSpacePressed, isPanMode, transform, onHoverCell]);
+  }, [isPanning, lastMousePos, isSpacePressed, isPanMode, transform, onHoverCell, isDraggingSelection, mouseDownPos]);
   
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    // Complete rectangle selection
-    if (isSelectMode && selectionStart && !isSimulationRunning) {
-      const simCoords = pixelToSim(e.clientX, e.clientY, transform);
-      const gridX = Math.floor(simCoords.x);
-      const gridY = Math.floor(simCoords.y);
+    // Calculate if this was a click or a drag
+    const wasClick = mouseDownPos && 
+      Math.abs(e.clientX - mouseDownPos.x) < 5 && 
+      Math.abs(e.clientY - mouseDownPos.y) < 5;
+    
+    const simCoords = pixelToSim(e.clientX, e.clientY, transform);
+    const gridX = Math.floor(simCoords.x);
+    const gridY = Math.floor(simCoords.y);
+    
+    // Handle drag-to-move completion
+    if (isDraggingSelection && dragOffset && !wasClick) {
+      if (dragOffset.x !== 0 || dragOffset.y !== 0) {
+        onMoveSelection(dragOffset.x, dragOffset.y);
+      }
+      setIsDraggingSelection(false);
+      setDragOffset(null);
+    }
+    // Handle rectangle selection completion
+    else if (isSelectMode && selectionStart && !isSimulationRunning && !wasClick) {
       onSelectionRectangle(selectionStart.x, selectionStart.y, gridX, gridY);
       onSetSelectionStart(null);
     }
+    // Handle single cell click in select mode
+    else if (isSelectMode && wasClick && !isSimulationRunning) {
+      const position = vec(gridX, gridY);
+      onSelectionClick(position, e.shiftKey);
+    }
+    // Handle component placement/removal click (not in select mode)
+    else if (!isSelectMode && wasClick && !isPanning && !isSpacePressed && !isPanMode && !isSimulationRunning) {
+      const position = vec(gridX, gridY);
+      const posKey = vecToKey(position);
+      
+      // Check for properties editing
+      if (e.ctrlKey || e.metaKey) {
+        if (experiment.components.has(posKey)) {
+          onSelectComponent(position);
+        }
+      } else if (selectedComponent) {
+        onAddComponent(position, selectedComponent);
+      } else {
+        onRemoveComponent(position);
+      }
+    }
 
     setIsPanning(false);
-  }, [isSelectMode, selectionStart, isSimulationRunning, transform, onSelectionRectangle, onSetSelectionStart]);
+    setMouseDownPos(null);
+    setIsMouseDown(false);
+    setIsDraggingSelection(false);
+    setDragOffset(null);
+  }, [isSelectMode, selectionStart, isSimulationRunning, transform, onSelectionRectangle, onSetSelectionStart, 
+      mouseDownPos, isDraggingSelection, dragOffset, onSelectionClick, isPanning, isSpacePressed, isPanMode,
+      selectedComponent, onAddComponent, onRemoveComponent, onSelectComponent, experiment]);
   
   const handleMouseLeave = useCallback(() => {
     setIsPanning(false);
+    setIsMouseDown(false);
+    setMouseDownPos(null);
+    setIsDraggingSelection(false);
+    setDragOffset(null);
     setHoveredCell(null); // Clear hover when mouse leaves
     onHoverCell(null);
   }, [onHoverCell]);
@@ -348,46 +438,7 @@ export const Grid: React.FC<GridProps> = ({
     };
   }, [handleWheel]);
   
-  const handleCellClick = (e: React.MouseEvent) => {
-    if (isPanning || isSpacePressed || isPanMode) return; // Don't place components while panning or in pan mode
-    
-    // Disable editing while simulation is running
-    if (isSimulationRunning) return;
-    
-    // Only handle left click
-    if (e.button !== 0) return;
-    
-    e.preventDefault();
-    
-    // Convert click position to simulation coordinates
-    const simCoords = pixelToSim(e.clientX, e.clientY, transform);
-    const gridX = Math.floor(simCoords.x);
-    const gridY = Math.floor(simCoords.y);
-    const position = vec(gridX, gridY);
-    const posKey = vecToKey(position);
-
-    // Select mode: handle selection
-    if (isSelectMode) {
-      onSelectionClick(position, e.shiftKey);
-      return;
-    }
-
-    // Check if clicking on existing component with Ctrl/Cmd key for properties editing
-    if (e.ctrlKey || e.metaKey) {
-      if (experiment.components.has(posKey)) {
-        onSelectComponent(position);
-        return;
-      }
-    }
-
-    if (selectedComponent) {
-      // Left click with selected component: add/replace component
-      onAddComponent(position, selectedComponent);
-    } else {
-      // Left click with eraser (no component selected): remove component
-      onRemoveComponent(position);
-    }
-  };
+  // Note: handleCellClick is no longer used - all logic moved to handleMouseUp for proper click/drag detection
   
   // Get visible grid lines
   const getVisibleGridLines = () => {
@@ -438,8 +489,16 @@ export const Grid: React.FC<GridProps> = ({
         ref={svgRef}
         width="100%"
         height="100%"
-        style={{ display: 'block' }}
-        onClick={handleCellClick}
+        style={{ 
+          display: 'block',
+          cursor: isDraggingSelection ? 'grabbing' : (isSelectMode && hoveredCell && selectedPositions.has(vecToKey(vec(hoveredCell.x, hoveredCell.y)))) ? 'move' : 'default',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
       >
         {/* Grid lines */}
         <g>
@@ -532,6 +591,39 @@ export const Grid: React.FC<GridProps> = ({
             );
           })}
 
+          {/* Live preview of cells being selected during drag (only while mouse is down) */}
+          {isSelectMode && selectionStart && hoveredCell && !isDraggingSelection && isMouseDown && (() => {
+            const minX = Math.min(selectionStart.x, hoveredCell.x);
+            const maxX = Math.max(selectionStart.x, hoveredCell.x);
+            const minY = Math.min(selectionStart.y, hoveredCell.y);
+            const maxY = Math.max(selectionStart.y, hoveredCell.y);
+            
+            const cells = [];
+            for (let x = minX; x <= maxX; x++) {
+              for (let y = minY; y <= maxY; y++) {
+                if (!isComponentVisible(x, y)) continue;
+                
+                const pixelPos = getCellTopLeft(x, y, transform);
+                const cellPixelSize = transform.scale;
+                
+                cells.push(
+                  <rect
+                    key={`preview-${x}-${y}`}
+                    x={pixelPos.x}
+                    y={pixelPos.y}
+                    width={cellPixelSize}
+                    height={cellPixelSize}
+                    fill="rgba(99, 102, 241, 0.15)"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    pointerEvents="none"
+                  />
+                );
+              }
+            }
+            return <g>{cells}</g>;
+          })()}
+
           {/* Selected empty cells (cells without components) */}
           {isSelectMode && Array.from(selectedPositions).map((posKey) => {
             // Only render highlight if there's no component at this position
@@ -590,6 +682,37 @@ export const Grid: React.FC<GridProps> = ({
             return null;
           })()}
         </g>
+
+        {/* Ghost preview of components being dragged */}
+        {isDraggingSelection && dragOffset && (
+          <g style={{ opacity: 0.5 }}>
+            {Array.from(selectedPositions).map((posKey) => {
+              const component = experiment.components.get(posKey);
+              if (!component) return null; // Skip empty selected cells
+              
+              const parts = posKey.split(',');
+              const oldX = parseFloat(parts[0]);
+              const oldY = parseFloat(parts[2]);
+              const newX = oldX + dragOffset.x;
+              const newY = oldY + dragOffset.y;
+              
+              if (!isComponentVisible(newX, newY)) return null;
+              
+              const pixelPos = getCellTopLeft(newX, newY, transform);
+              const cellPixelSize = transform.scale;
+              
+              return (
+                <g
+                  key={`ghost-${posKey}`}
+                  transform={`translate(${pixelPos.x}, ${pixelPos.y}) scale(${cellPixelSize / CELL_SIZE})`}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <ComponentRenderer component={component} cellSize={CELL_SIZE} />
+                </g>
+              );
+            })}
+          </g>
+        )}
 
         {/* Particles */}
         <g>

@@ -618,11 +618,8 @@ function App() {
           setValidationResult(validateExperiment(newExperiment));
         }, 500);
 
-        // Select the newly pasted components
+        // Clear selection after pasting
         selection.clearSelection();
-        for (const key of newComponents.keys()) {
-          selection.addToSelection(key);
-        }
 
         return newSystem;
       }
@@ -669,6 +666,66 @@ function App() {
 
     selection.clearSelection();
   }, [isSelectMode, selection, isRunning, history]);
+
+  // Move selection by offset
+  const handleMoveSelection = useCallback((offsetX: number, offsetY: number) => {
+    if (!isSelectMode || !selection.hasSelection || isRunning) return;
+
+    const moveResult = selection.moveSelection(system.experiment, offsetX, offsetY);
+    if (!moveResult) return;
+
+    setSystem((prevSystem) => {
+      const newComponents = new Map(prevSystem.experiment.components);
+      
+      // Remove components from old positions
+      for (const key of moveResult.keysToRemove) {
+        newComponents.delete(key);
+      }
+      
+      // Add components to new positions (only non-empty cells)
+      for (const [key, component] of moveResult.componentsToMove) {
+        newComponents.set(key, component);
+      }
+
+      const newExperiment = {
+        ...prevSystem.experiment,
+        components: newComponents,
+      };
+
+      const newSystem = createSystem(newExperiment);
+      setInitialSystem(newSystem);
+      setStepCount(0);
+      setDetectionResult(null);
+      setIsRunning(false);
+      setSimulationHistory([]);
+      setCurrentStepIndex(-1);
+
+      history.push(newExperiment);
+
+      if (validationTimerRef.current) {
+        clearTimeout(validationTimerRef.current);
+      }
+      validationTimerRef.current = window.setTimeout(() => {
+        setValidationResult(validateExperiment(newExperiment));
+      }, 500);
+
+      return newSystem;
+    });
+
+    // Update selection to reflect new positions
+    const newSelection = new Set<string>();
+    for (const key of moveResult.keysToRemove) {
+      const parts = key.split(',');
+      const oldX = parseFloat(parts[0]);
+      const oldY = parseFloat(parts[2]);
+      const newPos = vec(oldX + offsetX, oldY + offsetY);
+      newSelection.add(vecToKey(newPos));
+    }
+    selection.selectedPositions.clear();
+    for (const key of newSelection) {
+      selection.selectedPositions.add(key);
+    }
+  }, [isSelectMode, selection, isRunning, system.experiment, history]);
 
   // Select component for editing
   const handleSelectComponent = useCallback((position: Vec) => {
@@ -837,6 +894,7 @@ function App() {
           onSelectionRectangle={(x1, y1, x2, y2) => selection.selectRectangle(x1, y1, x2, y2, system.experiment)}
           selectionStart={selectionStart}
           onSetSelectionStart={setSelectionStart}
+          onMoveSelection={handleMoveSelection}
         />
       </div>
 

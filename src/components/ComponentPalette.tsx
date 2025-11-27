@@ -191,7 +191,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
           padding: '0',
           backgroundColor: '#1a1a1a',
           color: '#e5e5e5',
-          border: (selectedComponent === null && !isPanMode) ? '2px solid #3b82f6' : '1px solid #404040',
+          border: (selectedComponent === null && !isPanMode && !isSelectMode) ? '2px solid #3b82f6' : '1px solid #404040',
           borderRadius: '8px',
           cursor: 'pointer',
           display: 'flex',

@@ -35,7 +35,7 @@ export function useSelection() {
     });
   }, []);
 
-  const selectRectangle = useCallback((x1: number, y1: number, x2: number, y2: number, experiment: any) => {
+  const selectRectangle = useCallback((x1: number, y1: number, x2: number, y2: number, _experiment: any) => {
     const minX = Math.min(x1, x2);
     const maxX = Math.max(x1, x2);
     const minY = Math.min(y1, y2);
@@ -45,9 +45,8 @@ export function useSelection() {
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
         const key = vecToKey(vec(x, y));
-        if (experiment.components.has(key)) {
-          newSelection.add(key);
-        }
+        // Select ALL cells in rectangle (including empty ones)
+        newSelection.add(key);
       }
     }
 
@@ -69,17 +68,18 @@ export function useSelection() {
     let minX = Infinity;
     let minY = Infinity;
 
+    // Only copy actual components, not empty cells
     for (const posKey of selectedPositions) {
       const component = experiment.components.get(posKey);
       if (component) {
         components.set(posKey, component);
-        // Extract x and y from the key format "x.re,x.im,y.re,y.im"
-        const parts = posKey.split(',');
-        const x = parseFloat(parts[0]);
-        const y = parseFloat(parts[2]);
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
       }
+      // Calculate min even for empty cells to preserve relative positions
+      const parts = posKey.split(',');
+      const x = parseFloat(parts[0]);
+      const y = parseFloat(parts[2]);
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
     }
 
     setClipboard({ components, minX, minY });
@@ -97,6 +97,7 @@ export function useSelection() {
     const offsetX = targetPos.x.re - clipboard.minX;
     const offsetY = targetPos.y.re - clipboard.minY;
 
+    // Only paste actual components - empty cells are ignored
     for (const [oldKey, component] of clipboard.components) {
       // Parse old position
       const parts = oldKey.split(',');
@@ -107,6 +108,7 @@ export function useSelection() {
       const newPos = vec(oldX + offsetX, oldY + offsetY);
       const newKey = vecToKey(newPos);
 
+      // Place component at new position (will overwrite if something there)
       newComponents.set(newKey, component);
     }
 
@@ -119,6 +121,7 @@ export function useSelection() {
     const componentsToMove = new Map<string, Component>();
     const keysToRemove = new Set<string>();
 
+    // Only move actual components - empty selected cells are ignored
     for (const posKey of selectedPositions) {
       const component = experiment.components.get(posKey);
       if (component) {
@@ -133,6 +136,7 @@ export function useSelection() {
         const newPos = vec(oldX + offsetX, oldY + offsetY);
         const newKey = vecToKey(newPos);
 
+        // Place component at new position (will overwrite if something there)
         componentsToMove.set(newKey, component);
       }
     }

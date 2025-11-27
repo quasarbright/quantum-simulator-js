@@ -22,6 +22,8 @@ body {
   height: 100vh;
   position: relative;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .grid-container-wrapper {

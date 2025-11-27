@@ -1,0 +1,4 @@
+- [ ] when you load a preset, eraser mode is selected. loading a preset should not change the mode
+- [ ] for rewind controls during a running experiment, instead of having a separate ui for going back and forth, just add a step back button to the big row of buttons. The order should be step back, play/pause, step forward, reset, ... the step back button should be disabled if there is no previous system state
+- [ ] icons in the left panel are cut off a little
+- [ ] replace zoom to fit icon with the crosshair thing

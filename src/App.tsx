@@ -20,6 +20,7 @@ import { SaveLoadDialog } from './components/SaveLoadDialog';
 import { StatusBar } from './components/StatusBar';
 import { StatisticsPanel } from './components/StatisticsPanel';
 import { ComponentPropertiesPanel } from './components/ComponentPropertiesPanel';
+import { ValidationPanel } from './components/ValidationPanel';
 import { useHistory } from './hooks/useHistory';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSelection } from './hooks/useSelection';
@@ -132,6 +133,7 @@ function App() {
   const [speed, setSpeed] = useState(1);
   const [stepCount, setStepCount] = useState(0);
   const [detectionResult, setDetectionResult] = useState<any>(null);
+  const [nextDetectorName, setNextDetectorName] = useState<string>('A');
   
   // Save/Load dialog state
   const [showSaveLoadDialog, setShowSaveLoadDialog] = useState(false);
@@ -150,6 +152,9 @@ function App() {
   const [statisticsResult, setStatisticsResult] = useState<StatisticsResult | null>(null);
   const [isRunningStatistics, setIsRunningStatistics] = useState(false);
   const [statisticsProgress, setStatisticsProgress] = useState<{ current: number; total: number } | null>(null);
+  
+  // Validation panel state
+  const [showValidationPanel, setShowValidationPanel] = useState(false);
   
   // Component properties editing (different from selection mode)
   const [selectedComponentPos, setSelectedComponentPos] = useState<Vec | null>(null);
@@ -224,6 +229,47 @@ function App() {
     setIsRunning((running) => !running);
   }, []);
 
+  // Generate next available detector name (A, B, C, ..., Z, AA, AB, ...)
+  const getNextDetectorName = useCallback((components: Map<string, Component>): string => {
+    const existingNames = new Set<string>();
+    components.forEach(comp => {
+      if (comp.type === 'detector') {
+        existingNames.add(comp.name);
+      }
+    });
+
+    // Try single letters first: A-Z
+    for (let i = 0; i < 26; i++) {
+      const name = String.fromCharCode(65 + i);
+      if (!existingNames.has(name)) {
+        return name;
+      }
+    }
+
+    // Then try double letters: AA, AB, AC, ..., AZ, BA, BB, ...
+    for (let i = 0; i < 26; i++) {
+      for (let j = 0; j < 26; j++) {
+        const name = String.fromCharCode(65 + i) + String.fromCharCode(65 + j);
+        if (!existingNames.has(name)) {
+          return name;
+        }
+      }
+    }
+
+    // Fallback (should never reach here in practice)
+    return 'A';
+  }, []);
+
+  // Update next detector name when experiment changes
+  useEffect(() => {
+    setNextDetectorName(getNextDetectorName(system.experiment.components));
+  }, [system.experiment.components, getNextDetectorName]);
+
+  // Validate experiment on initial load and when it changes
+  useEffect(() => {
+    setValidationResult(validateExperiment(system.experiment));
+  }, [system.experiment]);
+
   // Add component to grid
   const handleAddComponent = useCallback((position: Vec, component: Component) => {
     // Don't allow editing while running
@@ -232,8 +278,11 @@ function App() {
     const posKey = vecToKey(position);
 
     setSystem((prevSystem) => {
+      // Use the component as-is (detector name is already set when mode is selected)
+      const componentToAdd = component;
+
       const newComponents = new Map(prevSystem.experiment.components);
-      newComponents.set(posKey, component);
+      newComponents.set(posKey, componentToAdd);
 
       const newExperiment = {
         ...prevSystem.experiment,
@@ -253,6 +302,14 @@ function App() {
         // Push to history for undo/redo
         history.push(newExperiment);
         
+        // If we added a detector, update the next detector name and mode
+        if (componentToAdd.type === 'detector') {
+          const newNextName = getNextDetectorName(newComponents);
+          setNextDetectorName(newNextName);
+          // Update the mode to use the new detector name
+          setMode(detector(newNextName));
+        }
+        
         // Validate experiment (debounced)
         if (validationTimerRef.current) {
           clearTimeout(validationTimerRef.current);
@@ -267,7 +324,7 @@ function App() {
       // No change, return previous system
       return prevSystem;
     });
-  }, [history, isRunning]);
+  }, [history, isRunning, getNextDetectorName]);
 
   // Remove component from grid
   const handleRemoveComponent = useCallback((position: Vec) => {
@@ -898,12 +955,18 @@ function App() {
         <ComponentPalette
           mode={mode}
           onSelectMode={(newMode) => {
-            setMode(newMode);
+            // If selecting detector, use the next available name
+            if (typeof newMode === 'object' && newMode.type === 'detector') {
+              setMode(detector(nextDetectorName));
+            } else {
+              setMode(newMode);
+            }
             if (newMode !== 'SELECT') {
               selection.clearSelection();
             }
           }}
           isSimulationRunning={isRunning}
+          nextDetectorName={nextDetectorName}
         />
       </div>
 
@@ -972,6 +1035,13 @@ function App() {
         onUpdate={handleUpdateComponentProperties}
       />
 
+      {/* Validation Panel */}
+      <ValidationPanel
+        isOpen={showValidationPanel}
+        validationResult={validationResult}
+        onClose={() => setShowValidationPanel(false)}
+      />
+
       {/* Status Bar */}
       <StatusBar
         mode={mode}
@@ -980,6 +1050,7 @@ function App() {
         experimentName={experimentName}
         validationWarnings={validationResult.warnings.length + validationResult.errors.length}
         isRunning={isRunning}
+        onShowValidation={() => setShowValidationPanel(true)}
       />
     </div>
   );

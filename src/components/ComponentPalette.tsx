@@ -12,6 +12,7 @@ interface ComponentPaletteProps {
   mode: Mode;
   onSelectMode: (mode: Mode) => void;
   isSimulationRunning: boolean;
+  nextDetectorName: string;
 }
 
 interface ComponentOption {
@@ -72,6 +73,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
   mode,
   onSelectMode,
   isSimulationRunning,
+  nextDetectorName,
 }) => {
   const isSelected = (option: ComponentOption) => {
     if (typeof mode === 'string') return false;
@@ -79,6 +81,14 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
   };
 
   const CELL_SIZE = 48;
+
+  // Update detector component with next available name
+  const getComponentForDisplay = (component: Component): Component => {
+    if (component.type === 'detector') {
+      return detector(nextDetectorName);
+    }
+    return component;
+  };
 
   return (
     <>
@@ -173,7 +183,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             height={CELL_SIZE - 8}
             style={{ display: 'block' }}
           >
-            <ComponentRenderer component={option.component} cellSize={CELL_SIZE - 8} />
+            <ComponentRenderer component={getComponentForDisplay(option.component)} cellSize={CELL_SIZE - 8} />
           </svg>
         </button>
       ))}

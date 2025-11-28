@@ -54,8 +54,8 @@ function serializeVec(v: Vec): SerializedVec {
 // Deserialize Vec
 function deserializeVec(v: SerializedVec): Vec {
   return vec(
-    deserializeComplex(v.x).re,
-    deserializeComplex(v.y).re
+    deserializeComplex(v.x),
+    deserializeComplex(v.y)
   );
 }
 
@@ -69,12 +69,18 @@ export function serializeExperiment(experiment: Experiment): SerializedExperimen
       amplitude: serializeComplex(experiment.source.amplitude),
     },
     components: Array.from(experiment.components.entries()).map(([key, component]) => {
-      // Serialize component - need to handle Complex in glass components
+      // Serialize component - need to handle Complex and Vec properties
       let serializedComponent: Component;
       if (component.type === 'glass') {
         serializedComponent = {
           ...component,
           phaseShift: deserializeComplex(serializeComplex(component.phaseShift)),
+        };
+      } else if (component.type === 'splitter' || component.type === 'mirror') {
+        // Serialize the norm Vec property
+        serializedComponent = {
+          ...component,
+          norm: deserializeVec(serializeVec(component.norm)),
         };
       } else {
         serializedComponent = component;
@@ -89,10 +95,16 @@ export function deserializeExperiment(serialized: SerializedExperiment): Experim
   const componentsMap = new Map<string, Component>();
   
   serialized.components.forEach(([key, component]) => {
-    // Deserialize component - handle Complex in glass components
+    // Deserialize component - handle Complex and Vec properties
     let deserializedComponent: Component;
     if (component.type === 'glass') {
       deserializedComponent = glass(deserializeComplex(serializeComplex(component.phaseShift)));
+    } else if (component.type === 'splitter' || component.type === 'mirror') {
+      // Deserialize the norm Vec property
+      deserializedComponent = {
+        ...component,
+        norm: deserializeVec(component.norm as any as SerializedVec),
+      };
     } else {
       deserializedComponent = component;
     }

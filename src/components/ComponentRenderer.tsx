@@ -153,10 +153,10 @@ const DetectorRenderer: React.FC<{ name: string; cellSize: number }> = ({
         rx={4}
       />
       
-      {/* Detector icon (target symbol) */}
+      {/* Detector icon (target symbol) - centered */}
       <circle
         cx={cellSize / 2}
-        cy={cellSize * 0.35}
+        cy={cellSize / 2}
         r={cellSize * 0.15}
         fill="none"
         stroke={DETECTOR_ICON}
@@ -164,17 +164,17 @@ const DetectorRenderer: React.FC<{ name: string; cellSize: number }> = ({
       />
       <circle
         cx={cellSize / 2}
-        cy={cellSize * 0.35}
+        cy={cellSize / 2}
         r={cellSize * 0.08}
         fill={DETECTOR_ICON}
       />
       
-      {/* Detector label */}
+      {/* Detector label - bottom-left corner */}
       <text
-        x={cellSize / 2}
-        y={cellSize * 0.75}
-        textAnchor="middle"
-        fontSize={cellSize * 0.3}
+        x={cellSize * 0.1}
+        y={cellSize * 0.88}
+        textAnchor="start"
+        fontSize={cellSize * 0.25}
         fontWeight="700"
         fill={DETECTOR_TEXT}
       >

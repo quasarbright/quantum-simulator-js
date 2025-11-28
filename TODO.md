@@ -2,3 +2,5 @@
 - [x] for rewind controls during a running experiment, instead of having a separate ui for going back and forth, just add a step back button to the big row of buttons. The order should be step back, play/pause, step forward, reset, ... the step back button should be disabled if there is no previous system state
 - [x] icons in the left panel are cut off a little
 - [x] replace zoom to fit icon with the crosshair thing
+- [ ] 3D view for full bloch sphere
+- [ ] make detector name editable

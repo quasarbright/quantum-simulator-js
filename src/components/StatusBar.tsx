@@ -10,6 +10,7 @@ interface StatusBarProps {
   experimentName?: string;
   validationWarnings?: number;
   isRunning: boolean;
+  onShowValidation?: () => void;
 }
 
 function getToolName(component: Component | null): string {
@@ -42,6 +43,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   experimentName,
   validationWarnings = 0,
   isRunning,
+  onShowValidation,
 }) => {
   const getModeDisplay = () => {
     if (isRunning) return 'Simulation Running (Editing Disabled)';
@@ -97,7 +99,31 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       {/* Right: Zoom and warnings */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {validationWarnings > 0 && (
-          <span style={{ color: '#f59e0b' }}>
+          <span
+            onClick={onShowValidation}
+            style={{
+              color: '#f59e0b',
+              cursor: onShowValidation ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              backgroundColor: onShowValidation ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              if (onShowValidation) {
+                e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (onShowValidation) {
+                e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+              }
+            }}
+            title={onShowValidation ? 'Click to view validation issues' : undefined}
+          >
             ⚠ {validationWarnings} warning{validationWarnings !== 1 ? 's' : ''}
           </span>
         )}

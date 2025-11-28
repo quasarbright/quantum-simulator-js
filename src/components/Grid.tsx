@@ -560,7 +560,7 @@ export const Grid: React.FC<GridProps> = ({
                 {isSource && (
                   <text
                     x={pixelPos.x + cellPixelSize / 2}
-                    y={pixelPos.y + 20}
+                    y={pixelPos.y + 10}
                     textAnchor="middle"
                     fontSize="12"
                     fill="#d4d4d4"
@@ -672,7 +672,7 @@ export const Grid: React.FC<GridProps> = ({
                 <g key="source-cell">
                   <text
                     x={pixelPos.x + cellPixelSize / 2}
-                    y={pixelPos.y + 20}
+                    y={pixelPos.y + 10}
                     textAnchor="middle"
                     fontSize="12"
                     fill="#d4d4d4"

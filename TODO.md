@@ -4,3 +4,4 @@
 - [x] replace zoom to fit icon with the crosshair thing
 - [ ] 3D view for full bloch sphere
 - [ ] make detector name editable
+- [ ] explanation text

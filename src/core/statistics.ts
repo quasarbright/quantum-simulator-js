@@ -11,6 +11,7 @@ export interface SimulationResult {
 export interface StatisticsResult {
   totalRuns: number;
   detectionCounts: Map<string, number>;
+  allDetectorNames: string[];
   noDetectionCount: number;
   averageSteps: number;
   minSteps: number;
@@ -24,7 +25,21 @@ export function runExperimentMultipleTimes(
   numRuns: number,
   onProgress?: (current: number, total: number) => void
 ): StatisticsResult {
+  // Collect all detector names from the experiment
+  const allDetectorNames: string[] = [];
+  experiment.components.forEach((component) => {
+    if (component.type === 'detector') {
+      allDetectorNames.push(component.name);
+    }
+  });
+  allDetectorNames.sort();
+
   const detectionCounts = new Map<string, number>();
+  // Initialize all detectors with 0 counts
+  allDetectorNames.forEach(name => {
+    detectionCounts.set(name, 0);
+  });
+
   let noDetectionCount = 0;
   let totalSteps = 0;
   let minSteps = Infinity;
@@ -58,6 +73,7 @@ export function runExperimentMultipleTimes(
   return {
     totalRuns: numRuns,
     detectionCounts,
+    allDetectorNames,
     noDetectionCount,
     averageSteps: totalSteps / numRuns,
     minSteps: minSteps === Infinity ? 0 : minSteps,

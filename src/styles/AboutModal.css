@@ -1,0 +1,81 @@
+.about-modal {
+  max-width: 800px;
+  max-height: 80vh;
+  width: 90%;
+}
+
+.about-modal .modal-body {
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+  padding: 20px;
+}
+
+.markdown-content {
+  line-height: 1.6;
+  color: #e0e0e0;
+  text-indent: 0;
+}
+
+.markdown-content * {
+  text-indent: 0;
+}
+
+.markdown-content h1 {
+  font-size: 2em;
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  color: #4fc3f7;
+  border-bottom: 2px solid #4fc3f7;
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h2 {
+  font-size: 1.5em;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: #81c784;
+}
+
+.markdown-content h3 {
+  font-size: 1.2em;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  color: #ffb74d;
+  text-indent: 0;
+}
+
+.markdown-content p {
+  margin: 1em 0;
+}
+
+.markdown-content ul {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+.markdown-content li {
+  margin: 0.3em 0;
+}
+
+.markdown-content code {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* MathJax styling */
+.markdown-content mjx-container {
+  margin: 1em 0;
+}
+
+.markdown-content mjx-container[display="true"] {
+  display: block;
+  text-align: center;
+}

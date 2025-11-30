@@ -21,6 +21,7 @@ import { StatusBar } from './components/StatusBar';
 import { StatisticsPanel } from './components/StatisticsPanel';
 import { ComponentPropertiesPanel } from './components/ComponentPropertiesPanel';
 import { ValidationPanel } from './components/ValidationPanel';
+import { AboutModal } from './components/AboutModal';
 import { useHistory } from './hooks/useHistory';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSelection } from './hooks/useSelection';
@@ -155,6 +156,9 @@ function App() {
   
   // Validation panel state
   const [showValidationPanel, setShowValidationPanel] = useState(false);
+  
+  // About modal state
+  const [showAboutModal, setShowAboutModal] = useState(false);
   
   // Component properties editing (different from selection mode)
   const [selectedComponentPos, setSelectedComponentPos] = useState<Vec | null>(null);
@@ -1005,6 +1009,35 @@ function App() {
         />
       </div>
 
+      {/* About button on the bottom right */}
+      <div className="floating-panel about-button-floating">
+        <button
+          onClick={() => setShowAboutModal(true)}
+          title="About"
+          style={{
+            padding: '12px 16px',
+            backgroundColor: '#06b6d4',
+            color: 'white',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            border: 'none',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          About
+        </button>
+      </div>
+
       {/* Save/Load Dialog */}
       <SaveLoadDialog
         isOpen={showSaveLoadDialog}
@@ -1040,6 +1073,12 @@ function App() {
         isOpen={showValidationPanel}
         validationResult={validationResult}
         onClose={() => setShowValidationPanel(false)}
+      />
+
+      {/* About Modal */}
+      <AboutModal
+        isOpen={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
       />
 
       {/* Status Bar */}

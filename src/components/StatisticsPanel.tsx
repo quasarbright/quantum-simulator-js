@@ -143,43 +143,43 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
                 </div>
               </div>
 
-              {result.detectionCounts.size > 0 && (
+              {result.allDetectorNames.length > 0 && (
                 <div>
                   <div style={{ color: '#a3a3a3', fontSize: '12px', marginBottom: '8px' }}>
                     Detections
                   </div>
-                  {Array.from(result.detectionCounts.entries())
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([name, count]) => {
-                      const percentage = ((count / result.totalRuns) * 100).toFixed(1);
-                      return (
-                        <div
-                          key={name}
-                          style={{
-                            marginBottom: '8px',
-                            padding: '8px',
-                            backgroundColor: '#1a1a1a',
-                            borderRadius: '4px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ color: '#e5e5e5', fontWeight: 'bold' }}>Detector {name}</span>
-                            <span style={{ color: '#4caf50' }}>
-                              {count} ({percentage}%)
-                            </span>
-                          </div>
-                          <div style={{ backgroundColor: '#2a2a2a', borderRadius: '2px', height: '4px', overflow: 'hidden' }}>
-                            <div
-                              style={{
-                                backgroundColor: '#4caf50',
-                                height: '100%',
-                                width: `${percentage}%`,
-                              }}
-                            />
-                          </div>
+                  {result.allDetectorNames.map((name) => {
+                    const count = result.detectionCounts.get(name) || 0;
+                    const percentage = ((count / result.totalRuns) * 100).toFixed(1);
+                    return (
+                      <div
+                        key={name}
+                        style={{
+                          marginBottom: '8px',
+                          padding: '8px',
+                          backgroundColor: '#1a1a1a',
+                          borderRadius: '4px',
+                          opacity: count === 0 ? 0.5 : 1,
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ color: '#e5e5e5', fontWeight: 'bold' }}>Detector {name}</span>
+                          <span style={{ color: count > 0 ? '#4caf50' : '#737373' }}>
+                            {count} ({percentage}%)
+                          </span>
                         </div>
-                      );
-                    })}
+                        <div style={{ backgroundColor: '#2a2a2a', borderRadius: '2px', height: '4px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              backgroundColor: count > 0 ? '#4caf50' : '#404040',
+                              height: '100%',
+                              width: `${percentage}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

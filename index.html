@@ -5,8 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/quantum-simulator-js/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>quantum-simulator-js</title>
-    <script type="module" crossorigin src="/quantum-simulator-js/assets/index-C9YEnvOy.js"></script>
-    <link rel="stylesheet" crossorigin href="/quantum-simulator-js/assets/index-DQjPnuz1.css">
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$']],
+          displayMath: [['$$', '$$']],
+        },
+        svg: {
+          fontCache: 'global'
+        }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <script type="module" crossorigin src="/quantum-simulator-js/assets/index-Dy4bhjuw.js"></script>
+    <link rel="stylesheet" crossorigin href="/quantum-simulator-js/assets/index-C6sMNuUV.css">
   </head>
   <body>
     <div id="root"></div>
